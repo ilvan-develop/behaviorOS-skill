@@ -1,0 +1,25 @@
+{
+  "version": "1.0.0",
+  "project": "{{PROJECT_NAME}}",
+  "enabled": true,
+  "destination": ".opencode/audit/audit.log",
+  "retention": {
+    "days": 365,
+    "compression": true
+  },
+  "capture": {
+    "fileChanges": true,
+    "toolCalls": true,
+    "gates": true,
+    "escalations": true,
+    "scopeChanges": true,
+    "agentDeclarations": true,
+    "dataAccess": true
+  },
+  "alerts": {
+    "onBlock": true,
+    "onEscalation": true,
+    "onError": true,
+    "onDataAccess": true
+  }
+}

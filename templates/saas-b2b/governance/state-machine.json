@@ -1,43 +1,50 @@
 {
   "version": "1.0.0",
-  "description": "Máquina de estados do Orchestrator para SaaS B2B",
-  "initialState": "idle",
-  "states": {
-    "idle": {
-      "transitions": [{"target": "running", "trigger": "agent_loop_started"}]
+  "project": "{{PROJECT_NAME}}",
+  "type": "saas-b2b",
+  "states": [
+    {
+      "id": "F0",
+      "name": "Fundação",
+      "description": "Setup do projeto, CI/CD, linting",
+      "status": "pending",
+      "isCritical": false
     },
-    "running": {
-      "transitions": [
-        {"target": "paused", "trigger": "escalation_required"},
-        {"target": "blocked", "trigger": "gate_failed"},
-        {"target": "completed", "trigger": "all_tasks_done"},
-        {"target": "failed", "trigger": "error_occurred"}
-      ]
+    {
+      "id": "F1",
+      "name": "Auth + Users",
+      "description": "Autenticação e gestão de usuários",
+      "status": "pending",
+      "isCritical": false
     },
-    "paused": {
-      "transitions": [
-        {"target": "running", "trigger": "human_approved"},
-        {"target": "cancelled", "trigger": "human_rejected"}
-      ]
+    {
+      "id": "F2",
+      "name": "Core Feature",
+      "description": "Feature principal do SaaS",
+      "status": "pending",
+      "isCritical": true
     },
-    "blocked": {
-      "transitions": [{"target": "running", "trigger": "gate_resolved"}]
+    {
+      "id": "F3",
+      "name": "Billing",
+      "description": "Assinaturas e pagamentos",
+      "status": "pending",
+      "isCritical": true
     },
-    "completed": {
-      "transitions": [{"target": "idle", "trigger": "phase_approved"}]
-    },
-    "failed": {
-      "transitions": [{"target": "idle", "trigger": "reset"}]
-    },
-    "cancelled": {
-      "transitions": [{"target": "idle", "trigger": "reset"}]
+    {
+      "id": "F4",
+      "name": "Endurecimento",
+      "description": "Testes, segurança, performance",
+      "status": "pending",
+      "isCritical": false
     }
-  },
-  "phaseStates": {
-    "F0": {"status": "pending", "critical": false, "dependencies": []},
-    "F1": {"status": "pending", "critical": false, "dependencies": ["F0"]},
-    "F2": {"status": "pending", "critical": true, "dependencies": ["F1"]},
-    "F3": {"status": "pending", "critical": true, "dependencies": ["F1"]},
-    "F4": {"status": "pending", "critical": false, "dependencies": ["F2", "F3"]}
-  }
+  ],
+  "transitions": [
+    { "from": "F0", "to": "F1", "condition": "all-gates-pass" },
+    { "from": "F1", "to": "F2", "condition": "all-gates-pass" },
+    { "from": "F1", "to": "F3", "condition": "all-gates-pass", "parallel": true },
+    { "from": "F2", "to": "F4", "condition": "all-gates-pass" },
+    { "from": "F3", "to": "F4", "condition": "all-gates-pass" }
+  ],
+  "currentState": "F0"
 }

@@ -1,0 +1,30 @@
+{
+  "version": "1.0.0",
+  "project": "{{PROJECT_NAME}}",
+  "rules": [
+    {
+      "id": "no-secrets",
+      "name": "Sem segredos no código",
+      "description": "Nunca expor tokens, chaves, credenciais",
+      "pattern": "(password|secret|token|key|credential)",
+      "action": "deny",
+      "severity": "critical"
+    },
+    {
+      "id": "health-data-encryption",
+      "name": "Criptografia de dados de saúde",
+      "description": "Dados de saúde devem ser criptografados",
+      "pattern": "(plaintext|clear.?text)",
+      "action": "deny",
+      "severity": "critical"
+    },
+    {
+      "id": "sql-injection",
+      "name": "Prevenção SQL Injection",
+      "description": "Usar queries parameterizadas",
+      "pattern": "(DROP|TRUNCATE|DELETE.*WHERE.*1=1)",
+      "action": "deny",
+      "severity": "critical"
+    }
+  ]
+}

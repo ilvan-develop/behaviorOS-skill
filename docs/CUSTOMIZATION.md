@@ -54,35 +54,19 @@ Controls autonomy levels and permissions.
 
 ```json
 {
-  "autonomyLevels": {
-    "L1": {
-      "name": "Rotina",
-      "examples": [
-        "Your custom L1 action",
-        "Another L1 action"
-      ]
+  "matrix": {
+    "F0": {
+      "name": "Fundação",
+      "isCritical": false,
+      "requiredApprovals": 0,
+      "allowedAgents": ["orchestrator", "architect", "devops"]
     },
-    "L2": {
-      "name": "Auto-Expandir",
-      "examples": [
-        "Your custom L2 action"
-      ]
-    },
-    "L3": {
-      "name": "Escalar",
-      "examples": [
-        "Your custom L3 action"
-      ]
+    "F1": {
+      "name": "Core Feature",
+      "isCritical": true,
+      "requiredApprovals": 1,
+      "allowedAgents": ["orchestrator", "architect", "backend", "frontend", "database", "qa", "security"]
     }
-  },
-  "rules": {
-    "criticalPhases": [
-      {
-        "phase": "F2",
-        "name": "Your Critical Phase",
-        "requiresApproval": true
-      }
-    ]
   }
 }
 ```
@@ -97,10 +81,15 @@ Controls which skills are required for each phase.
 
 ```json
 {
-  "requiredSkills": {
-    "F0": ["turborepo", "senior-fullstack"],
-    "F1": ["your-skill", "another-skill"],
-    "F2": ["nestjs", "prisma", "your-custom-skill"]
+  "phases": {
+    "F0": {
+      "required": ["enterprise-architecture", "senior-fullstack", "turborepo"],
+      "optional": ["enterprise-devops"]
+    },
+    "F1": {
+      "required": ["nestjs", "prisma", "orpc", "your-custom-skill"],
+      "optional": ["vitest", "playwright"]
+    }
   }
 }
 ```
@@ -120,18 +109,15 @@ Controls tool validations.
       "id": "custom-rule",
       "tool": "bash",
       "pattern": "your-pattern*",
-      "gate": "custom",
-      "checks": [
-        {
-          "name": "custom-check",
-          "command": "your-command",
-          "required": true
-        }
-      ],
-      "action": "block",
-      "message": "Custom message"
+      "action": "ask",
+      "reason": "Custom reason",
+      "checks": ["lint", "typecheck", "test"]
     }
-  ]
+  ],
+  "globalRules": {
+    "forbidden": ["password", "secret", "token", "key"],
+    "required": ["organizationId"]
+  }
 }
 ```
 
@@ -145,13 +131,33 @@ Controls orchestrator lifecycle and phases.
 
 ```json
 {
-  "phaseStates": {
-    "F0": {"status": "pending", "critical": false, "dependencies": []},
-    "F1": {"status": "pending", "critical": false, "dependencies": ["F0"]},
-    "F2": {"status": "pending", "critical": true, "dependencies": ["F1"]},
-    "F3": {"status": "pending", "critical": true, "dependencies": ["F1"]},
-    "F-CUSTOM": {"status": "pending", "critical": false, "dependencies": ["F2"]}
-  }
+  "states": [
+    {
+      "id": "F0",
+      "name": "Fundação",
+      "description": "Setup do projeto",
+      "status": "pending",
+      "isCritical": false
+    },
+    {
+      "id": "F1",
+      "name": "Core Feature",
+      "description": "Feature principal",
+      "status": "pending",
+      "isCritical": true
+    },
+    {
+      "id": "F-CUSTOM",
+      "name": "Custom Phase",
+      "description": "Your custom phase",
+      "status": "pending",
+      "isCritical": false
+    }
+  ],
+  "transitions": [
+    { "from": "F0", "to": "F1", "condition": "all-gates-pass" },
+    { "from": "F1", "to": "F-CUSTOM", "condition": "all-gates-pass" }
+  ]
 }
 ```
 
@@ -169,11 +175,155 @@ Controls security validations.
     {
       "id": "custom-security-rule",
       "name": "Custom Security Rule",
+      "description": "Description of the rule",
       "pattern": "your-pattern",
       "action": "deny",
-      "severity": "high"
+      "severity": "critical"
     }
   ]
+}
+```
+
+### 7. Audit Configuration (audit.json)
+
+Controls audit logging.
+
+**Location:** `.opencode/governance/audit.json`
+
+**How to customize:**
+
+```json
+{
+  "enabled": true,
+  "destination": ".opencode/audit/audit.log",
+  "retention": {
+    "days": 180,
+    "compression": true
+  },
+  "capture": {
+    "fileChanges": true,
+    "toolCalls": true,
+    "gates": true,
+    "escalations": true,
+    "scopeChanges": true,
+    "agentDeclarations": true,
+    "dataAccess": true
+  },
+  "alerts": {
+    "onBlock": true,
+    "onEscalation": true,
+    "onError": true,
+    "onDataAccess": true
+  }
+}
+```
+
+### 8. Memory Configuration (memory.json)
+
+Controls memory sections.
+
+**Location:** `.opencode/governance/memory.json`
+
+**How to customize:**
+
+```json
+{
+  "destination": ".opencode/memory/",
+  "sections": [
+    {
+      "id": "decisions",
+      "name": "decisions.md",
+      "description": "Decisões arquiteturais"
+    },
+    {
+      "id": "patterns",
+      "name": "patterns.md",
+      "description": "Padrões descobertos"
+    },
+    {
+      "id": "learnings",
+      "name": "learnings.md",
+      "description": "Lições aprendidas"
+    },
+    {
+      "id": "currentPhase",
+      "name": "current-phase.md",
+      "description": "Estado da fase atual"
+    },
+    {
+      "id": "compliance",
+      "name": "compliance.md",
+      "description": "Registros de compliance"
+    }
+  ],
+  "autoUpdate": true,
+  "updateTrigger": "phase-complete"
+}
+```
+
+### 9. Production Gate (production-gate.json)
+
+Controls production readiness checks.
+
+**Location:** `.opencode/governance/production-gate.json`
+
+**How to customize:**
+
+```json
+{
+  "phase": "F5",
+  "checks": [
+    {
+      "id": "all-phases-complete",
+      "name": "Todas as fases anteriores completas",
+      "required": true
+    },
+    {
+      "id": "test-coverage",
+      "name": "Cobertura de testes ≥ 80%",
+      "required": true,
+      "threshold": 80
+    },
+    {
+      "id": "security-audit",
+      "name": "Auditoria de segurança",
+      "required": true
+    },
+    {
+      "id": "compliance-check",
+      "name": "Verificação de compliance",
+      "required": true
+    }
+  ]
+}
+```
+
+### 10. Agents Configuration (opencode.json)
+
+Controls agents and their skills.
+
+**Location:** `.opencode/governance/opencode.json`
+
+**How to customize:**
+
+```json
+{
+  "agents": {
+    "orchestrator": {
+      "description": "Coordenador autônomo de todas as fases",
+      "maxAutonomyLevel": 2,
+      "canParallelize": true,
+      "skills": ["enterprise-architecture", "senior-fullstack", "turborepo"]
+    },
+    "architect": {
+      "description": "Arquitetura e decisões de design",
+      "skills": ["enterprise-architecture", "senior-fullstack"]
+    },
+    "my-agent": {
+      "description": "My custom agent",
+      "skills": ["my-skill", "other-skill"]
+    }
+  }
 }
 ```
 
@@ -182,6 +332,10 @@ Controls security validations.
 ### Step 1: Copy Existing Template
 
 ```bash
+# Windows
+xcopy /E /I templates\saa s-b2b templates\my-custom
+
+# Linux/Mac
 cp -r templates/saas-b2b templates/my-custom
 ```
 
@@ -256,8 +410,11 @@ Code examples and patterns.
 3. Reference in `skill-gate.json`:
 ```json
 {
-  "requiredSkills": {
-    "F2": ["my-skill", "other-skill"]
+  "phases": {
+    "F2": {
+      "required": ["my-skill", "other-skill"],
+      "optional": []
+    }
   }
 }
 ```
@@ -281,13 +438,9 @@ Code examples and patterns.
 2. Add permissions to `permissions-matrix.json`:
 ```json
 {
-  "agentPermissions": {
-    "my-agent": {
-      "canRead": true,
-      "canWrite": true,
-      "canExecute": false,
-      "maxAutonomyLevel": 2,
-      "allowedSkills": ["my-skill"]
+  "matrix": {
+    "F1": {
+      "allowedAgents": ["orchestrator", "architect", "my-agent"]
     }
   }
 }
@@ -317,6 +470,42 @@ Add custom variables to your templates:
 # Set before installation
 export CUSTOM_VARIABLE="my-value"
 ```
+
+## Immutable Rules Examples
+
+### Fintech Rules
+1. Testes desde o princípio (80% cobertura)
+2. Contracts-first
+3. Tenant isolation
+4. Design tokens
+5. Quality gates
+6. Audit trail
+7. Money movement nativo
+8. Conformidade AGT/SAF-T
+9. Pesquisar antes de implementar
+10. Execução rápida por defeito
+
+### Healthcare Rules
+1. Testes desde o princípio (80% cobertura)
+2. Contracts-first
+3. Tenant isolation
+4. Quality gates
+5. Audit trail
+6. LGPD
+7. Criptografia de dados sensíveis
+8. Pesquisar antes de implementar
+9. Execução rápida por defeito
+
+### E-commerce Rules
+1. Testes desde o princípio (80% cobertura)
+2. Contracts-first
+3. Tenant isolation
+4. Quality gates
+5. Audit trail
+6. PCI-DSS
+7. LGPD
+8. Pesquisar antes de implementar
+9. Execução rápida por defeito
 
 ## Best Practices
 

@@ -1,0 +1,30 @@
+{
+  "version": "1.0.0",
+  "project": "{{PROJECT_NAME}}",
+  "phases": {
+    "F0": {
+      "required": ["enterprise-architecture", "senior-fullstack", "turborepo"],
+      "optional": ["enterprise-devops"]
+    },
+    "F1": {
+      "required": ["enterprise-architecture", "senior-fullstack", "prisma"],
+      "optional": ["better-auth", "enterprise-security"]
+    },
+    "F2": {
+      "required": ["enterprise-architecture", "senior-fullstack", "nestjs", "prisma", "orpc"],
+      "optional": ["vitest"]
+    },
+    "F3": {
+      "required": ["enterprise-architecture", "senior-fullstack", "nestjs", "prisma", "orpc", "nextjs", "react"],
+      "optional": ["vitest", "playwright"]
+    },
+    "F4": {
+      "required": ["enterprise-architecture", "senior-fullstack", "nestjs", "prisma", "orpc"],
+      "optional": ["vitest", "playwright"]
+    },
+    "F5": {
+      "required": ["vitest", "playwright", "testing-library", "enterprise-security", "enterprise-devops"],
+      "optional": ["enterprise-performance"]
+    }
+  }
+}

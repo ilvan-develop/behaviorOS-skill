@@ -1,0 +1,30 @@
+{
+  "version": "1.0.0",
+  "project": "{{PROJECT_NAME}}",
+  "rules": [
+    {
+      "id": "no-secrets",
+      "name": "Sem segredos no código",
+      "description": "Nunca expor tokens, chaves, credenciais",
+      "pattern": "(password|secret|token|key|credential)",
+      "action": "deny",
+      "severity": "critical"
+    },
+    {
+      "id": "pci-dss-card-data",
+      "name": "Proteção de dados de pagamento",
+      "description": "Nunca armazenar CVV, dados sensíveis em texto plano",
+      "pattern": "(cvv|cvv2|security.?code)",
+      "action": "deny",
+      "severity": "critical"
+    },
+    {
+      "id": "sql-injection",
+      "name": "Prevenção SQL Injection",
+      "description": "Usar queries parameterizadas",
+      "pattern": "(DROP|TRUNCATE|DELETE.*WHERE.*1=1)",
+      "action": "deny",
+      "severity": "critical"
+    }
+  ]
+}

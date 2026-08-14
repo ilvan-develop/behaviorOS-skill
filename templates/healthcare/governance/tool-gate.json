@@ -1,0 +1,39 @@
+{
+  "version": "1.0.0",
+  "project": "{{PROJECT_NAME}}",
+  "rules": [
+    {
+      "id": "git-commit",
+      "tool": "bash",
+      "pattern": "git commit*",
+      "action": "ask",
+      "reason": "Quality gates devem passar antes de commit",
+      "checks": ["lint", "typecheck", "build", "test"]
+    },
+    {
+      "id": "git-push",
+      "tool": "bash",
+      "pattern": "git push*",
+      "action": "ask",
+      "reason": "Push requer revisão"
+    },
+    {
+      "id": "destructive",
+      "tool": "bash",
+      "pattern": "rm -rf*",
+      "action": "deny",
+      "reason": "Operações destrutivas bloqueadas"
+    },
+    {
+      "id": "prisma-schema",
+      "tool": "write",
+      "pattern": "*.prisma",
+      "action": "ask",
+      "reason": "Mudanças de schema requerem validação"
+    }
+  ],
+  "globalRules": {
+    "forbidden": ["password", "secret", "token", "key", "plaintext", "clear"],
+    "required": ["organizationId", "encryption"]
+  }
+}

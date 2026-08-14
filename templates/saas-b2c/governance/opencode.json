@@ -1,0 +1,85 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "project": "{{PROJECT_NAME}}",
+  "version": "1.0.0",
+  "description": "{{PROJECT_DESCRIPTION}}",
+  "permissions": {
+    "default": "ask",
+    "rules": [
+      {
+        "tool": "bash",
+        "pattern": "git commit*",
+        "action": "ask",
+        "reason": "Quality gates devem passar antes de commit"
+      },
+      {
+        "tool": "bash",
+        "pattern": "git push*",
+        "action": "ask",
+        "reason": "Push requer revisão"
+      },
+      {
+        "tool": "bash",
+        "pattern": "rm -rf*",
+        "action": "deny",
+        "reason": "Operações destrutivas bloqueadas"
+      }
+    ]
+  },
+  "agents": {
+    "orchestrator": {
+      "description": "Coordenador autônomo de todas as fases",
+      "maxAutonomyLevel": 2,
+      "canParallelize": true,
+      "skills": ["enterprise-architecture", "senior-fullstack", "turborepo"]
+    },
+    "architect": {
+      "description": "Arquitetura e decisões de design",
+      "skills": ["enterprise-architecture", "senior-fullstack"]
+    },
+    "planner": {
+      "description": "Planejamento de tarefas e breakdown",
+      "skills": ["enterprise-product", "turborepo"]
+    },
+    "backend": {
+      "description": "APIs e lógica de negócio",
+      "skills": ["nestjs", "prisma", "orpc"]
+    },
+    "frontend": {
+      "description": "UI e componentes",
+      "skills": ["nextjs", "react", "tailwind", "shadcn"]
+    },
+    "database": {
+      "description": "Schema e migrations",
+      "skills": ["prisma", "enterprise-database"]
+    },
+    "qa": {
+      "description": "Testes e qualidade",
+      "skills": ["vitest", "playwright", "testing-library"]
+    },
+    "security": {
+      "description": "Segurança e compliance",
+      "skills": ["enterprise-security", "helmet"]
+    },
+    "devops": {
+      "description": "CI/CD e deploy",
+      "skills": ["enterprise-devops", "turborepo"]
+    }
+  },
+  "governance": {
+    "enabled": true,
+    "scopeApproval": "human",
+    "autonomyModel": "three-level",
+    "parallelExecution": true,
+    "criticalPhases": ["F2", "F3"],
+    "immutableRules": [
+      "Testes desde o princípio",
+      "Contracts-first",
+      "Quality gates",
+      "Audit trail",
+      "LGPD",
+      "Pesquisar antes de implementar",
+      "Execução rápida por defeito"
+    ]
+  }
+}

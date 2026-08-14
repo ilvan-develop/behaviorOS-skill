@@ -1,0 +1,42 @@
+{
+  "version": "1.0.0",
+  "project": "{{PROJECT_NAME}}",
+  "matrix": {
+    "F0": {
+      "name": "Fundação",
+      "isCritical": false,
+      "requiredApprovals": 0,
+      "allowedAgents": ["orchestrator", "architect", "devops"]
+    },
+    "F1": {
+      "name": "Auth + Users",
+      "isCritical": false,
+      "requiredApprovals": 0,
+      "allowedAgents": ["orchestrator", "architect", "backend", "database", "qa"]
+    },
+    "F2": {
+      "name": "Cursos",
+      "isCritical": false,
+      "requiredApprovals": 0,
+      "allowedAgents": ["orchestrator", "architect", "backend", "database", "qa"]
+    },
+    "F3": {
+      "name": "Conteúdo",
+      "isCritical": true,
+      "requiredApprovals": 1,
+      "allowedAgents": ["orchestrator", "architect", "backend", "frontend", "database", "qa"]
+    },
+    "F4": {
+      "name": "Progresso",
+      "isCritical": true,
+      "requiredApprovals": 1,
+      "allowedAgents": ["orchestrator", "architect", "backend", "frontend", "database", "qa"]
+    },
+    "F5": {
+      "name": "Endurecimento",
+      "isCritical": false,
+      "requiredApprovals": 0,
+      "allowedAgents": ["orchestrator", "backend", "frontend", "qa", "security", "devops"]
+    }
+  }
+}

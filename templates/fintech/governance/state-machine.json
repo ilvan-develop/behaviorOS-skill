@@ -1,45 +1,68 @@
 {
   "version": "1.0.0",
-  "description": "Máquina de estados do Orchestrator para Fintech",
-  "initialState": "idle",
-  "states": {
-    "idle": {
-      "transitions": [{"target": "running", "trigger": "agent_loop_started"}]
+  "project": "{{PROJECT_NAME}}",
+  "type": "fintech",
+  "states": [
+    {
+      "id": "F0",
+      "name": "Fundação",
+      "description": "Setup do projeto, CI/CD, linting",
+      "status": "pending",
+      "isCritical": false
     },
-    "running": {
-      "transitions": [
-        {"target": "paused", "trigger": "escalation_required"},
-        {"target": "blocked", "trigger": "gate_failed"},
-        {"target": "completed", "trigger": "all_tasks_done"},
-        {"target": "failed", "trigger": "error_occurred"}
-      ]
+    {
+      "id": "F1",
+      "name": "IAM + Tenants",
+      "description": "Autenticação e gestão de tenants",
+      "status": "pending",
+      "isCritical": false
     },
-    "paused": {
-      "transitions": [
-        {"target": "running", "trigger": "human_approved"},
-        {"target": "cancelled", "trigger": "human_rejected"}
-      ]
+    {
+      "id": "F2",
+      "name": "Payments",
+      "description": "Pipeline de pagamentos com OCR",
+      "status": "pending",
+      "isCritical": true
     },
-    "blocked": {
-      "transitions": [{"target": "running", "trigger": "gate_resolved"}]
+    {
+      "id": "F3",
+      "name": "Billing",
+      "description": "Faturação e assinaturas",
+      "status": "pending",
+      "isCritical": true
     },
-    "completed": {
-      "transitions": [{"target": "idle", "trigger": "phase_approved"}]
+    {
+      "id": "F4",
+      "name": "Dev Platform",
+      "description": "Plataforma de desenvolvimento",
+      "status": "pending",
+      "isCritical": false
     },
-    "failed": {
-      "transitions": [{"target": "idle", "trigger": "reset"}]
+    {
+      "id": "F5",
+      "name": "Audit + Compliance",
+      "description": "Auditoria e conformidade",
+      "status": "pending",
+      "isCritical": true
     },
-    "cancelled": {
-      "transitions": [{"target": "idle", "trigger": "reset"}]
+    {
+      "id": "F6",
+      "name": "Endurecimento",
+      "description": "Testes, segurança, performance",
+      "status": "pending",
+      "isCritical": true
     }
-  },
-  "phaseStates": {
-    "F0": {"status": "pending", "critical": false, "dependencies": []},
-    "F1": {"status": "pending", "critical": false, "dependencies": ["F0"]},
-    "F2": {"status": "pending", "critical": true, "dependencies": ["F1"]},
-    "F3": {"status": "pending", "critical": true, "dependencies": ["F1"]},
-    "F4": {"status": "pending", "critical": false, "dependencies": ["F2", "F3"]},
-    "F5": {"status": "pending", "critical": true, "dependencies": ["F2", "F3"]},
-    "F6": {"status": "pending", "critical": true, "dependencies": ["F4", "F5"]}
-  }
+  ],
+  "transitions": [
+    { "from": "F0", "to": "F1", "condition": "all-gates-pass" },
+    { "from": "F1", "to": "F2", "condition": "all-gates-pass" },
+    { "from": "F1", "to": "F3", "condition": "all-gates-pass", "parallel": true },
+    { "from": "F2", "to": "F4", "condition": "all-gates-pass" },
+    { "from": "F3", "to": "F4", "condition": "all-gates-pass" },
+    { "from": "F2", "to": "F5", "condition": "all-gates-pass" },
+    { "from": "F3", "to": "F5", "condition": "all-gates-pass" },
+    { "from": "F4", "to": "F6", "condition": "all-gates-pass" },
+    { "from": "F5", "to": "F6", "condition": "all-gates-pass" }
+  ],
+  "currentState": "F0"
 }

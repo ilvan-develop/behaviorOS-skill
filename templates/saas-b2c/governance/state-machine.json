@@ -1,0 +1,50 @@
+{
+  "version": "1.0.0",
+  "project": "{{PROJECT_NAME}}",
+  "type": "saas-b2c",
+  "states": [
+    {
+      "id": "F0",
+      "name": "Fundação",
+      "description": "Setup do projeto, CI/CD, linting",
+      "status": "pending",
+      "isCritical": false
+    },
+    {
+      "id": "F1",
+      "name": "Auth + Users",
+      "description": "Autenticação e gestão de usuários",
+      "status": "pending",
+      "isCritical": false
+    },
+    {
+      "id": "F2",
+      "name": "Core Feature",
+      "description": "Feature principal do SaaS",
+      "status": "pending",
+      "isCritical": true
+    },
+    {
+      "id": "F3",
+      "name": "Billing",
+      "description": "Assinaturas e pagamentos",
+      "status": "pending",
+      "isCritical": true
+    },
+    {
+      "id": "F4",
+      "name": "Endurecimento",
+      "description": "Testes, segurança, performance",
+      "status": "pending",
+      "isCritical": false
+    }
+  ],
+  "transitions": [
+    { "from": "F0", "to": "F1", "condition": "all-gates-pass" },
+    { "from": "F1", "to": "F2", "condition": "all-gates-pass" },
+    { "from": "F1", "to": "F3", "condition": "all-gates-pass", "parallel": true },
+    { "from": "F2", "to": "F4", "condition": "all-gates-pass" },
+    { "from": "F3", "to": "F4", "condition": "all-gates-pass" }
+  ],
+  "currentState": "F0"
+}

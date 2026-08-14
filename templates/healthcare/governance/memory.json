@@ -1,0 +1,34 @@
+{
+  "version": "1.0.0",
+  "project": "{{PROJECT_NAME}}",
+  "destination": ".opencode/memory/",
+  "sections": [
+    {
+      "id": "decisions",
+      "name": "decisions.md",
+      "description": "Decisões arquiteturais"
+    },
+    {
+      "id": "patterns",
+      "name": "patterns.md",
+      "description": "Padrões descobertos"
+    },
+    {
+      "id": "learnings",
+      "name": "learnings.md",
+      "description": "Lições aprendidas"
+    },
+    {
+      "id": "currentPhase",
+      "name": "current-phase.md",
+      "description": "Estado da fase atual"
+    },
+    {
+      "id": "compliance",
+      "name": "compliance.md",
+      "description": "Registros de compliance"
+    }
+  ],
+  "autoUpdate": true,
+  "updateTrigger": "phase-complete"
+}

@@ -1,0 +1,18 @@
+{
+  "version": "1.0.0",
+  "project": "{{PROJECT_NAME}}",
+  "phases": {
+    "F0": {
+      "required": ["enterprise-architecture", "senior-fullstack", "turborepo"],
+      "optional": ["enterprise-devops"]
+    },
+    "F1": {
+      "required": ["enterprise-architecture", "senior-fullstack", "nestjs", "prisma", "orpc"],
+      "optional": ["vitest", "playwright"]
+    },
+    "F2": {
+      "required": ["vitest", "playwright", "testing-library", "enterprise-security", "enterprise-devops"],
+      "optional": ["enterprise-performance"]
+    }
+  }
+}

@@ -1,21 +1,34 @@
 {
   "version": "1.0.0",
-  "description": "Gate de validação de skills para Fintech",
-  "requireSkillBeforeTask": true,
-  "rules": [
-    {
-      "id": "skill-required",
-      "condition": "task.type === 'code' || task.type === 'config'",
-      "requireSkill": true,
-      "action": "block"
+  "project": "{{PROJECT_NAME}}",
+  "phases": {
+    "F0": {
+      "required": ["enterprise-architecture", "senior-fullstack", "turborepo"],
+      "optional": ["enterprise-devops"]
+    },
+    "F1": {
+      "required": ["enterprise-architecture", "senior-fullstack", "prisma"],
+      "optional": ["better-auth", "enterprise-security"]
+    },
+    "F2": {
+      "required": ["enterprise-architecture", "senior-fullstack", "nestjs", "prisma", "orpc", "better-auth"],
+      "optional": ["vitest", "playwright", "compliance", "agt", "saf-t"]
+    },
+    "F3": {
+      "required": ["enterprise-architecture", "senior-fullstack", "nestjs", "prisma", "orpc"],
+      "optional": ["vitest", "playwright", "compliance", "agt", "saf-t"]
+    },
+    "F4": {
+      "required": ["enterprise-architecture", "senior-fullstack", "nestjs", "prisma", "orpc"],
+      "optional": ["vitest", "playwright"]
+    },
+    "F5": {
+      "required": ["enterprise-architecture", "senior-fullstack", "nestjs", "prisma", "orpc", "enterprise-security", "compliance", "agt", "saf-t"],
+      "optional": ["vitest", "playwright"]
+    },
+    "F6": {
+      "required": ["vitest", "playwright", "testing-library", "enterprise-security", "enterprise-devops"],
+      "optional": ["enterprise-performance"]
     }
-  ],
-  "requiredSkills": {
-    "F0": ["turborepo", "senior-fullstack"],
-    "F1": ["better-auth", "prisma", "nestjs"],
-    "F2": ["nestjs", "prisma", "orpc", "payments"],
-    "F3": ["nestjs", "prisma", "orpc", "financial-ledger"],
-    "F5": ["compliance", "agt", "saf-t"],
-    "F6": ["enterprise-devops", "enterprise-security"]
   }
 }

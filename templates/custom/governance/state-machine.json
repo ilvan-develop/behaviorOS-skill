@@ -1,0 +1,33 @@
+{
+  "version": "1.0.0",
+  "project": "{{PROJECT_NAME}}",
+  "type": "custom",
+  "states": [
+    {
+      "id": "F0",
+      "name": "Fundação",
+      "description": "Setup do projeto, CI/CD, linting",
+      "status": "pending",
+      "isCritical": false
+    },
+    {
+      "id": "F1",
+      "name": "Core",
+      "description": "Feature principal",
+      "status": "pending",
+      "isCritical": true
+    },
+    {
+      "id": "F2",
+      "name": "Endurecimento",
+      "description": "Testes, segurança, performance",
+      "status": "pending",
+      "isCritical": false
+    }
+  ],
+  "transitions": [
+    { "from": "F0", "to": "F1", "condition": "all-gates-pass" },
+    { "from": "F1", "to": "F2", "condition": "all-gates-pass" }
+  ],
+  "currentState": "F0"
+}

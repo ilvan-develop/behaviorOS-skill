@@ -1,0 +1,33 @@
+{
+  "version": "1.0.0",
+  "project": "{{PROJECT_NAME}}",
+  "phase": "F5",
+  "checks": [
+    {
+      "id": "all-phases-complete",
+      "name": "Todas as fases anteriores completas",
+      "required": true
+    },
+    {
+      "id": "test-coverage",
+      "name": "Cobertura de testes ≥ 80%",
+      "required": true,
+      "threshold": 80
+    },
+    {
+      "id": "security-audit",
+      "name": "Auditoria de segurança",
+      "required": true
+    },
+    {
+      "id": "compliance-check",
+      "name": "Verificação LGPD/HIPAA",
+      "required": true
+    },
+    {
+      "id": "encryption-verification",
+      "name": "Verificação de criptografia",
+      "required": true
+    }
+  ]
+}

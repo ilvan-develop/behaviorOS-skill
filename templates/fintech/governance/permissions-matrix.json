@@ -1,65 +1,48 @@
 {
   "version": "1.0.0",
-  "description": "Matriz de permissões para Fintech",
-  "autonomyLevels": {
-    "L1": {
-      "name": "Rotina",
-      "requiresApproval": false,
-      "autoExecute": true,
-      "examples": [
-        "Criar controller seguindo padrão",
-        "Escrever teste unitário",
-        "Rodar lint, typecheck, build"
-      ]
+  "project": "{{PROJECT_NAME}}",
+  "matrix": {
+    "F0": {
+      "name": "Fundação",
+      "isCritical": false,
+      "requiredApprovals": 0,
+      "allowedAgents": ["orchestrator", "architect", "devops"]
     },
-    "L2": {
-      "name": "Auto-Expandir",
-      "requiresApproval": false,
-      "flagForReview": true,
-      "examples": [
-        "Adicionar campo auxiliar",
-        "Criar service auxiliar",
-        "Refatorar código existente"
-      ]
+    "F1": {
+      "name": "IAM + Tenants",
+      "isCritical": false,
+      "requiredApprovals": 0,
+      "allowedAgents": ["orchestrator", "architect", "backend", "database", "qa"]
     },
-    "L3": {
-      "name": "Escalar",
-      "requiresApproval": true,
-      "blockExecution": true,
-      "examples": [
-        "Nova dependência não prevista",
-        "Mudança de schema",
-        "Incerteza de compliance",
-        "Implicação de segurança"
-      ]
-    }
-  },
-  "rules": {
-    "criticalPhases": [
-      {
-        "phase": "F2",
-        "name": "Payments",
-        "requiresApproval": true
-      },
-      {
-        "phase": "F3",
-        "name": "Billing",
-        "requiresApproval": true
-      },
-      {
-        "phase": "F5",
-        "name": "Audit + Compliance",
-        "requiresApproval": true
-      },
-      {
-        "phase": "F6",
-        "name": "Launch",
-        "requiresApproval": true
-      }
-    ],
-    "parallelizationRules": {
-      "allowed": true,
-      "maxConcurrentTasks": 3
+    "F2": {
+      "name": "Payments",
+      "isCritical": true,
+      "requiredApprovals": 1,
+      "allowedAgents": ["orchestrator", "architect", "backend", "frontend", "database", "qa", "security", "compliance"]
+    },
+    "F3": {
+      "name": "Billing",
+      "isCritical": true,
+      "requiredApprovals": 1,
+      "allowedAgents": ["orchestrator", "architect", "backend", "database", "qa", "security", "compliance"]
+    },
+    "F4": {
+      "name": "Dev Platform",
+      "isCritical": false,
+      "requiredApprovals": 0,
+      "allowedAgents": ["orchestrator", "architect", "backend", "frontend", "database", "qa"]
+    },
+    "F5": {
+      "name": "Audit + Compliance",
+      "isCritical": true,
+      "requiredApprovals": 1,
+      "allowedAgents": ["orchestrator", "architect", "backend", "database", "qa", "security", "compliance"]
+    },
+    "F6": {
+      "name": "Endurecimento",
+      "isCritical": true,
+      "requiredApprovals": 1,
+      "allowedAgents": ["orchestrator", "backend", "frontend", "qa", "security", "devops"]
     }
   }
 }

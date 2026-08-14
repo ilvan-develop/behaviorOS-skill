@@ -123,15 +123,17 @@ export function validateConfig(governanceDir, configName) {
     const content = readFileSync(filePath, 'utf8');
     const config = JSON.parse(content);
     
+    console.log('validateConfig called with:', configName, config);
+    
     // Add specific validation rules here
     switch (configName) {
-      case 'opencode.json':
+      case 'opencode':
         return validateOpenCodeConfig(config);
-      case 'permissions-matrix.json':
+      case 'permissions-matrix':
         return validatePermissionsMatrix(config);
-      case 'skill-gate.json':
+      case 'skill-gate':
         return validateSkillGate(config);
-      case 'tool-gate.json':
+      case 'tool-gate':
         return validateToolGate(config);
       default:
         return { valid: true };
@@ -163,10 +165,14 @@ function validateOpenCodeConfig(config) {
     }
   }
   
-  return {
+  const result = {
     valid: errors.length === 0,
     error: errors.join('; '),
   };
+  
+  console.log('validateOpenCodeConfig result:', result);
+  
+  return result;
 }
 
 /**
