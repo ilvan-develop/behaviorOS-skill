@@ -48,8 +48,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Configuration
-$AuditDir = Join-Path $PSScriptRoot ".." ".opencode" "audit"
+# Configuration - find project root
+$ProjectRoot = (Get-Location).Path
+$AuditDir = Join-Path $ProjectRoot ".opencode" "audit"
 $LogFile = Join-Path $AuditDir "skill-selections.log"
 
 # Ensure audit directory exists
