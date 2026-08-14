@@ -57,6 +57,8 @@ After installation, your project will have:
 ```
 your-project/
 ├── opencode.json                    # OpenCode config (PROJECT ROOT)
+├── .agents/
+│   └── skills/                      # Project-level agent skills
 └── .opencode/
     ├── governance/
     │   ├── INSTRUCTIONS.md          # Absolute rules
@@ -80,6 +82,48 @@ your-project/
 
 **Important:** `opencode.json` goes to the **project root**, NOT to `.opencode/governance/`. This follows the official OpenCode schema.
 
+## Skills System
+
+behaviorOS loads skills from multiple directories via `opencode.json`:
+
+```json
+{
+  "skills": {
+    "paths": [
+      ".opencode/skills",      // Local skills (project-specific)
+      ".agents/skills",        // Local agent skills
+      "~/.agents/skills",      // Global user skills
+      "~/.opencode/skills"     // Global opencode skills
+    ]
+  }
+}
+```
+
+**Priority:** Local skills override global skills with the same name.
+
+### Local vs Global
+
+| Type | Path | Use Case |
+|------|------|----------|
+| **Local** | `.opencode/skills/`, `.agents/skills/` | Project-specific skills, custom rules |
+| **Global** | `~/.agents/skills/`, `~/.opencode/skills/` | Reusable across all projects |
+
+### Global Skills Inventory
+
+Skills available in `~/.agents/skills/` for all projects:
+
+| Domain | Skills |
+|--------|--------|
+| **Architecture** | enterprise-architecture, enterprise-backend, enterprise-frontend, enterprise-database |
+| **DevOps** | enterprise-devops, cloudflare, cloudflare-one, workers-best-practices, durable-objects, wrangler |
+| **Security** | enterprise-security, cloudflare-one-migrations |
+| **AI/ML** | enterprise-ai-engineering, build-models, run-models, publish-models, compare-models, find-models, prompt-images, prompt-videos |
+| **QA** | enterprise-qa, enterprise-performance, web-perf, enterprise-design-qa |
+| **Product** | enterprise-product, enterprise-executive, enterprise-learning-design |
+| **UI/UX** | enterprise-frontend, enterprise-ux-research, enterprise-visual-design, frontend-design |
+| **Tools** | context7-mcp, skill-creator, find-skills, sandbox-stable, sandbox-next, sandbox-migrate-to-next |
+| **Documentation** | enterprise-documentation |
+
 ## Validation
 
 After installation, validate the configuration:
@@ -98,7 +142,8 @@ This will check:
 1. **Review configuration** — Open `.opencode/governance/INSTRUCTIONS.md` and customize for your project
 2. **Define your rules** — Update the absolute rules in INSTRUCTIONS.md
 3. **Set up phases** — Configure your roadmap phases
-4. **Start development** — Use `/agent_loop --phase F0` to begin
+4. **Check global skills** — Global skills (`~/.agents/skills/`) are available automatically across all projects
+5. **Start development** — Use `/agent_loop --phase F0` to begin
 
 ## Quick Start Example
 
@@ -126,10 +171,21 @@ Edit `.opencode/governance/INSTRUCTIONS.md` to add your project-specific rules.
 ### Customizing Templates
 
 Copy an existing template and modify:
-- `opencode.json` — Agents and permissions
+- `opencode.json` — Agents, permissions, and skills paths
 - `permissions-matrix.json` — Autonomy levels
-- `skill-gate.json` — Required skills
+- `skill-gate.json` — Required skills per phase
 - `tool-gate.json` — Tool validations
+
+**Skills configuration in `opencode.json`:**
+```json
+{
+  "skills": {
+    "paths": [".opencode/skills", ".agents/skills", "~/.agents/skills"]
+  }
+}
+```
+
+Add or remove paths based on where your skills are located.
 
 ### Adding Phases
 
