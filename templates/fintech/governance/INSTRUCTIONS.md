@@ -70,6 +70,24 @@
 - Seguir convenções documentadas na skill
 - Se não há skill, pesquisar melhores práticas antes de implementar
 
+### 12.1 Log de skill selection
+- ANTES de executar tarefa, registar no audit trail qual skill foi selecionada
+- Formato: `[SKILL-LOAD] skill=<nome> agent=<agente> phase=<fase> timestamp=<ISO>`
+- Exemplo: `[SKILL-LOAD] skill=nestjs agent=backend phase=F2 timestamp=2026-08-14T03:23:00Z`
+- Logs ficam em `.opencode/audit/skill-selections.log`
+- Formato JSONL para consumo programático:
+  ```json
+  {
+    "timestamp": "2026-08-14T03:23:00Z",
+    "event": "skill_load",
+    "skill": "nestjs",
+    "agent": "backend",
+    "phase": "F2",
+    "source": ".opencode/skills/nestjs",
+    "result": "success"
+  }
+  ```
+
 ### 13. Anti-patterns são proibidos
 - Verificar se o código viola anti-patterns documentados nas skills
 - Se viola, corrigir antes de commit

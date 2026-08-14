@@ -49,15 +49,15 @@ function validateJSON(filePath, requiredFields = []) {
     for (const field of requiredFields) {
       if (!(field in data)) {
         results.failed.push(`  Missing field "${field}" in ${filePath}`);
-        return false;
+        return null;
       }
     }
     
     results.passed.push(`  ${filePath} - Valid JSON`);
-    return true;
+    return data;
   } catch (err) {
     results.failed.push(`  ${filePath} - Invalid JSON: ${err.message}`);
-    return false;
+    return null;
   }
 }
 
@@ -138,7 +138,27 @@ function main() {
   const projectRoot = join(targetDir);
   const opencodePath = join(projectRoot, 'opencode.json');
   if (existsSync(opencodePath)) {
-    validateJSON(opencodePath, ['project', 'agent', 'governance']);
+    const opencodeData = validateJSON(opencodePath, ['project', 'agent', 'governance']);
+    
+    // Check permissions structure
+    if (opencodeData && opencodeData.permission) {
+      const perm = opencodeData.permission;
+      
+      // Check for invalid 'write' key
+      if ('write' in perm) {
+        results.failed.push(`  opencode.json - "write" permission key is invalid (covered by "edit")`);
+      }
+      
+      // Check if bash is set to "ask" globally (should be granular or "allow")
+      if (perm.bash === 'ask') {
+        results.warnings.push(`  opencode.json - bash permission is "ask" (consider granular config for L1/L2 autonomy)`);
+      }
+      
+      // Check if edit is set to "ask" (should be "allow" for L1/L2)
+      if (perm.edit === 'ask') {
+        results.warnings.push(`  opencode.json - edit permission is "ask" (consider "allow" for L1/L2 autonomy)`);
+      }
+    }
   } else {
     results.failed.push(`  opencode.json - Missing from project root`);
   }
@@ -147,6 +167,17 @@ function main() {
   const permissionsPath = join(governanceDir, 'permissions-matrix.json');
   if (existsSync(permissionsPath)) {
     validateJSON(permissionsPath, ['autonomyLevels', 'rules']);
+  }
+
+  // Validate audit.json - check for skillSelectionLog
+  const auditPath = join(governanceDir, 'audit.json');
+  if (existsSync(auditPath)) {
+    const auditData = validateJSON(auditPath, ['capture']);
+    if (auditData && auditData.capture) {
+      if (!auditData.capture.skillSelectionLog) {
+        results.warnings.push(`  audit.json - Missing "capture.skillSelectionLog" field for skill selection logging`);
+      }
+    }
   }
 
   // Print results

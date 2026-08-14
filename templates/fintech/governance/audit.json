@@ -8,6 +8,7 @@
   "capture": {
     "toolCalls": true,
     "skillLoads": true,
+    "skillSelectionLog": ".opencode/audit/skill-selections.log",
     "gateEvaluations": true,
     "decisions": true,
     "errors": true,

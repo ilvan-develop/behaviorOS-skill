@@ -48,9 +48,16 @@
     }
   },
   "permission": {
-    "bash": "ask",
-    "edit": "ask",
-    "write": "ask"
+    "bash": {
+      "*": "allow",
+      "git push *": "ask",
+      "git commit *": "allow",
+      "rm -rf *": "deny",
+      "DROP *": "deny",
+      "TRUNCATE *": "deny",
+      "DELETE FROM *": "deny"
+    },
+    "edit": "allow"
   },
   "governance": {
     "enabled": true,
