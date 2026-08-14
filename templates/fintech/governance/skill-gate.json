@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0",
+  "description": "Gate de validação de skills para Fintech",
+  "requireSkillBeforeTask": true,
+  "rules": [
+    {
+      "id": "skill-required",
+      "condition": "task.type === 'code' || task.type === 'config'",
+      "requireSkill": true,
+      "action": "block"
+    }
+  ],
+  "requiredSkills": {
+    "F0": ["turborepo", "senior-fullstack"],
+    "F1": ["better-auth", "prisma", "nestjs"],
+    "F2": ["nestjs", "prisma", "orpc", "payments"],
+    "F3": ["nestjs", "prisma", "orpc", "financial-ledger"],
+    "F5": ["compliance", "agt", "saf-t"],
+    "F6": ["enterprise-devops", "enterprise-security"]
+  }
+}

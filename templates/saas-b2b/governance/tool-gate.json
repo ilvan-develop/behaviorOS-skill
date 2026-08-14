@@ -1,0 +1,31 @@
+{
+  "version": "1.0.0",
+  "description": "Gate de validação de ferramentas para SaaS B2B",
+  "enabled": true,
+  "rules": [
+    {
+      "id": "git-commit",
+      "tool": "bash",
+      "pattern": "git commit*",
+      "gate": "quality",
+      "checks": [
+        {"name": "lint", "command": "pnpm lint", "required": true},
+        {"name": "typecheck", "command": "pnpm typecheck", "required": true},
+        {"name": "test", "command": "pnpm test", "required": true}
+      ],
+      "action": "block"
+    },
+    {
+      "id": "git-push",
+      "tool": "bash",
+      "pattern": "git push*",
+      "action": "ask"
+    },
+    {
+      "id": "destructive",
+      "tool": "bash",
+      "pattern": "rm -rf*",
+      "action": "deny"
+    }
+  ]
+}

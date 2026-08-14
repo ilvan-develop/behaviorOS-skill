@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "description": "Configuração de memória para SaaS B2B",
+  "memoryScope": "project",
+  "sections": {
+    "decisions": {
+      "description": "Decisões arquiteturais",
+      "file": ".opencode/memory/decisions.md",
+      "autoUpdate": true
+    },
+    "patterns": {
+      "description": "Padrões descobertos",
+      "file": ".opencode/memory/patterns.md",
+      "autoUpdate": true
+    },
+    "learnings": {
+      "description": "Lições aprendidas",
+      "file": ".opencode/memory/learnings.md",
+      "autoUpdate": true
+    },
+    "currentPhase": {
+      "description": "Estado da fase atual",
+      "file": ".opencode/memory/current-phase.md",
+      "autoUpdate": true
+    }
+  },
+  "autoUpdate": true
+}

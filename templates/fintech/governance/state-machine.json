@@ -1,0 +1,45 @@
+{
+  "version": "1.0.0",
+  "description": "Máquina de estados do Orchestrator para Fintech",
+  "initialState": "idle",
+  "states": {
+    "idle": {
+      "transitions": [{"target": "running", "trigger": "agent_loop_started"}]
+    },
+    "running": {
+      "transitions": [
+        {"target": "paused", "trigger": "escalation_required"},
+        {"target": "blocked", "trigger": "gate_failed"},
+        {"target": "completed", "trigger": "all_tasks_done"},
+        {"target": "failed", "trigger": "error_occurred"}
+      ]
+    },
+    "paused": {
+      "transitions": [
+        {"target": "running", "trigger": "human_approved"},
+        {"target": "cancelled", "trigger": "human_rejected"}
+      ]
+    },
+    "blocked": {
+      "transitions": [{"target": "running", "trigger": "gate_resolved"}]
+    },
+    "completed": {
+      "transitions": [{"target": "idle", "trigger": "phase_approved"}]
+    },
+    "failed": {
+      "transitions": [{"target": "idle", "trigger": "reset"}]
+    },
+    "cancelled": {
+      "transitions": [{"target": "idle", "trigger": "reset"}]
+    }
+  },
+  "phaseStates": {
+    "F0": {"status": "pending", "critical": false, "dependencies": []},
+    "F1": {"status": "pending", "critical": false, "dependencies": ["F0"]},
+    "F2": {"status": "pending", "critical": true, "dependencies": ["F1"]},
+    "F3": {"status": "pending", "critical": true, "dependencies": ["F1"]},
+    "F4": {"status": "pending", "critical": false, "dependencies": ["F2", "F3"]},
+    "F5": {"status": "pending", "critical": true, "dependencies": ["F2", "F3"]},
+    "F6": {"status": "pending", "critical": true, "dependencies": ["F4", "F5"]}
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "version": "1.0.0",
+  "description": "Configuração de auditoria para SaaS B2B",
+  "enabled": true,
+  "logLevel": "info",
+  "output": ".opencode/audit/audit.log",
+  "format": "jsonl",
+  "capture": {
+    "toolCalls": true,
+    "skillLoads": true,
+    "gateEvaluations": true,
+    "decisions": true,
+    "errors": true,
+    "phaseTransitions": true
+  },
+  "retention": {
+    "maxAge": "90d",
+    "maxSize": "100MB"
+  }
+}

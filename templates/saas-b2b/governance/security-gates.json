@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0",
+  "description": "Security gates para SaaS B2B",
+  "enabled": true,
+  "rules": [
+    {
+      "id": "no-secrets",
+      "name": "No Secrets in Code",
+      "pattern": "(password|secret|token|api_key)\\s*[=:]\\s*['\"][^'\"]+['\"]",
+      "action": "deny",
+      "severity": "critical"
+    },
+    {
+      "id": "sql-injection",
+      "name": "SQL Injection Prevention",
+      "pattern": "query\\(.*\\$\\{.*\\}",
+      "action": "deny",
+      "severity": "high"
+    }
+  ]
+}

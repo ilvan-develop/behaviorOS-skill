@@ -1,0 +1,65 @@
+{
+  "version": "1.0.0",
+  "description": "Matriz de permissões para Fintech",
+  "autonomyLevels": {
+    "L1": {
+      "name": "Rotina",
+      "requiresApproval": false,
+      "autoExecute": true,
+      "examples": [
+        "Criar controller seguindo padrão",
+        "Escrever teste unitário",
+        "Rodar lint, typecheck, build"
+      ]
+    },
+    "L2": {
+      "name": "Auto-Expandir",
+      "requiresApproval": false,
+      "flagForReview": true,
+      "examples": [
+        "Adicionar campo auxiliar",
+        "Criar service auxiliar",
+        "Refatorar código existente"
+      ]
+    },
+    "L3": {
+      "name": "Escalar",
+      "requiresApproval": true,
+      "blockExecution": true,
+      "examples": [
+        "Nova dependência não prevista",
+        "Mudança de schema",
+        "Incerteza de compliance",
+        "Implicação de segurança"
+      ]
+    }
+  },
+  "rules": {
+    "criticalPhases": [
+      {
+        "phase": "F2",
+        "name": "Payments",
+        "requiresApproval": true
+      },
+      {
+        "phase": "F3",
+        "name": "Billing",
+        "requiresApproval": true
+      },
+      {
+        "phase": "F5",
+        "name": "Audit + Compliance",
+        "requiresApproval": true
+      },
+      {
+        "phase": "F6",
+        "name": "Launch",
+        "requiresApproval": true
+      }
+    ],
+    "parallelizationRules": {
+      "allowed": true,
+      "maxConcurrentTasks": 3
+    }
+  }
+}

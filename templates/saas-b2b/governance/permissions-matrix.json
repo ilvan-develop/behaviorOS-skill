@@ -1,0 +1,54 @@
+{
+  "version": "1.0.0",
+  "description": "Matriz de permissões para SaaS B2B",
+  "autonomyLevels": {
+    "L1": {
+      "name": "Rotina",
+      "requiresApproval": false,
+      "autoExecute": true,
+      "examples": [
+        "Criar controller seguindo padrão",
+        "Escrever teste unitário",
+        "Rodar lint, typecheck, build"
+      ]
+    },
+    "L2": {
+      "name": "Auto-Expandir",
+      "requiresApproval": false,
+      "flagForReview": true,
+      "examples": [
+        "Adicionar campo auxiliar",
+        "Criar service auxiliar",
+        "Refatorar código existente"
+      ]
+    },
+    "L3": {
+      "name": "Escalar",
+      "requiresApproval": true,
+      "blockExecution": true,
+      "examples": [
+        "Nova dependência não prevista",
+        "Mudança de schema",
+        "Incerteza de compliance"
+      ]
+    }
+  },
+  "rules": {
+    "criticalPhases": [
+      {
+        "phase": "F2",
+        "name": "Core Feature",
+        "requiresApproval": true
+      },
+      {
+        "phase": "F3",
+        "name": "Billing",
+        "requiresApproval": true
+      }
+    ],
+    "parallelizationRules": {
+      "allowed": true,
+      "maxConcurrentTasks": 3
+    }
+  }
+}

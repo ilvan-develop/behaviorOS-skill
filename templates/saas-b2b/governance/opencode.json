@@ -1,0 +1,54 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "project": "{{PROJECT_NAME}}",
+  "version": "1.0.0",
+  "description": "{{PROJECT_DESCRIPTION}}",
+  "permissions": {
+    "default": "ask",
+    "rules": [
+      {
+        "tool": "bash",
+        "pattern": "git commit*",
+        "action": "ask",
+        "reason": "Quality gates devem passar antes de commit"
+      },
+      {
+        "tool": "bash",
+        "pattern": "git push*",
+        "action": "ask",
+        "reason": "Push requer revisão"
+      },
+      {
+        "tool": "bash",
+        "pattern": "rm -rf*",
+        "action": "deny",
+        "reason": "Operações destrutivas bloqueadas"
+      }
+    ]
+  },
+  "agents": {
+    "orchestrator": {
+      "description": "Coordenador autônomo de todas as fases",
+      "maxAutonomyLevel": 2,
+      "canParallelize": true
+    },
+    "architect": {
+      "description": "Arquitetura e decisões de design"
+    },
+    "backend": {
+      "description": "APIs e lógica de negócio"
+    },
+    "frontend": {
+      "description": "UI e componentes"
+    },
+    "qa": {
+      "description": "Testes e qualidade"
+    }
+  },
+  "governance": {
+    "enabled": true,
+    "scopeApproval": "human",
+    "autonomyModel": "three-level",
+    "criticalPhases": ["F2", "F3"]
+  }
+}

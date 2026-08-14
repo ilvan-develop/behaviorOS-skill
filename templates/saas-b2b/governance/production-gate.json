@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "description": "Production readiness gate para SaaS B2B",
+  "phase": "F4",
+  "requireHumanApproval": true,
+  "checks": [
+    {
+      "id": "all-phases-complete",
+      "name": "All Phases Complete",
+      "required": true
+    },
+    {
+      "id": "test-coverage",
+      "name": "Test Coverage",
+      "required": true,
+      "threshold": 80
+    },
+    {
+      "id": "security-audit",
+      "name": "Security Audit",
+      "required": true
+    }
+  ],
+  "approvalRequired": {
+    "roles": ["human"],
+    "message": "Deploy em produção requer aprovação humana"
+  }
+}
