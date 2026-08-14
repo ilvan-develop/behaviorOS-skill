@@ -3,32 +3,32 @@
   "project": "{{PROJECT_NAME}}",
   "phases": {
     "F0": {
-      "required": ["enterprise-architecture", "senior-fullstack", "turborepo"],
-      "optional": ["enterprise-devops"]
+      "required": ["monorepo-architecture-guardian", "turbo", "enterprise-governance"],
+      "optional": ["turbo"]
     },
     "F1": {
-      "required": ["enterprise-architecture", "senior-fullstack", "prisma"],
-      "optional": ["better-auth", "enterprise-security"]
+      "required": ["monorepo-architecture-guardian", "prisma"],
+      "optional": ["better-auth", "security"]
     },
     "F2": {
-      "required": ["enterprise-architecture", "senior-fullstack", "nestjs", "prisma", "orpc", "better-auth"],
-      "optional": ["vitest", "playwright", "compliance", "agt", "saf-t"]
+      "required": ["monorepo-architecture-guardian", "nestjs", "prisma", "orpc", "better-auth"],
+      "optional": ["vitest", "playwright", "compliance"]
     },
     "F3": {
-      "required": ["enterprise-architecture", "senior-fullstack", "nestjs", "prisma", "orpc"],
-      "optional": ["vitest", "playwright", "compliance", "agt", "saf-t"]
+      "required": ["monorepo-architecture-guardian", "nestjs", "prisma", "orpc"],
+      "optional": ["vitest", "playwright", "compliance"]
     },
     "F4": {
-      "required": ["enterprise-architecture", "senior-fullstack", "nestjs", "prisma", "orpc"],
+      "required": ["monorepo-architecture-guardian", "nestjs", "prisma", "orpc"],
       "optional": ["vitest", "playwright"]
     },
     "F5": {
-      "required": ["enterprise-architecture", "senior-fullstack", "nestjs", "prisma", "orpc", "enterprise-security", "compliance", "agt", "saf-t"],
+      "required": ["monorepo-architecture-guardian", "nestjs", "prisma", "orpc", "security", "compliance"],
       "optional": ["vitest", "playwright"]
     },
     "F6": {
-      "required": ["vitest", "playwright", "testing-library", "enterprise-security", "enterprise-devops"],
-      "optional": ["enterprise-performance"]
+      "required": ["vitest", "playwright", "testing-library", "security", "turbo"],
+      "optional": []
     }
   }
 }

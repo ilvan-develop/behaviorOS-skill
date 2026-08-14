@@ -1,77 +1,59 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "project": "{{PROJECT_NAME}}",
-  "version": "1.0.0",
   "description": "{{PROJECT_DESCRIPTION}}",
-  "permissions": {
-    "default": "ask",
-    "rules": [
-      {
-        "tool": "bash",
-        "pattern": "git commit*",
-        "action": "ask",
-        "reason": "Quality gates devem passar antes de commit"
-      },
-      {
-        "tool": "bash",
-        "pattern": "git push*",
-        "action": "ask",
-        "reason": "Push requer revisão"
-      },
-      {
-        "tool": "bash",
-        "pattern": "rm -rf*",
-        "action": "deny",
-        "reason": "Operações destrutivas bloqueadas"
-      }
-    ]
+  "skills": {
+    "paths": [".opencode/skills", ".agents/skills"]
   },
-  "agents": {
+  "agent": {
     "orchestrator": {
       "description": "Coordenador autônomo de todas as fases",
-      "maxAutonomyLevel": 2,
-      "canParallelize": true,
-      "skills": ["enterprise-architecture", "senior-fullstack", "turborepo"]
+      "mode": "primary"
     },
     "architect": {
       "description": "Arquitetura e decisões de design",
-      "skills": ["enterprise-architecture", "senior-fullstack"]
+      "mode": "subagent"
     },
     "planner": {
       "description": "Planejamento de tarefas e breakdown",
-      "skills": ["enterprise-product", "turborepo"]
+      "mode": "subagent"
     },
     "backend": {
       "description": "APIs e lógica de negócio",
-      "skills": ["nestjs", "prisma", "orpc"]
+      "mode": "subagent"
     },
     "frontend": {
       "description": "UI e componentes",
-      "skills": ["nextjs", "react", "tailwind", "shadcn"]
+      "mode": "subagent"
     },
     "database": {
       "description": "Schema e migrations",
-      "skills": ["prisma", "enterprise-database"]
+      "mode": "subagent"
     },
     "qa": {
       "description": "Testes e qualidade",
-      "skills": ["vitest", "playwright", "testing-library"]
+      "mode": "subagent"
     },
     "security": {
       "description": "Segurança",
-      "skills": ["enterprise-security", "helmet"]
+      "mode": "subagent"
     },
     "devops": {
       "description": "CI/CD e deploy",
-      "skills": ["enterprise-devops", "turborepo"]
+      "mode": "subagent"
     }
+  },
+  "permission": {
+    "bash": "ask",
+    "edit": "ask",
+    "write": "ask"
   },
   "governance": {
     "enabled": true,
     "scopeApproval": "human",
     "autonomyModel": "three-level",
     "parallelExecution": true,
-    "criticalPhases": ["F2", "F3"],
+    "criticalPhases": {{CRITICAL_PHASES}},
     "immutableRules": [
       "Testes desde o princípio",
       "Contracts-first",

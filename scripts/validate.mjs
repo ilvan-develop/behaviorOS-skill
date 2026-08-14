@@ -17,7 +17,6 @@ const __dirname = dirname(__filename);
 
 // Required files
 const REQUIRED_FILES = [
-  'opencode.json',
   'INSTRUCTIONS.md',
   'permissions-matrix.json',
   'skill-gate.json',
@@ -135,10 +134,13 @@ function main() {
   // Validate specific configurations
   console.log('\nValidating configurations...');
 
-  // Validate opencode.json
-  const opencodePath = join(governanceDir, 'opencode.json');
+  // Validate opencode.json (in project root, not governance dir)
+  const projectRoot = join(targetDir);
+  const opencodePath = join(projectRoot, 'opencode.json');
   if (existsSync(opencodePath)) {
-    validateJSON(opencodePath, ['project', 'agents', 'governance']);
+    validateJSON(opencodePath, ['project', 'agent', 'governance']);
+  } else {
+    results.failed.push(`  opencode.json - Missing from project root`);
   }
 
   // Validate permissions-matrix.json

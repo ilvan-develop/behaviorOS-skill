@@ -3,16 +3,16 @@
   "project": "{{PROJECT_NAME}}",
   "phases": {
     "F0": {
-      "required": ["enterprise-architecture", "senior-fullstack", "turborepo"],
-      "optional": ["enterprise-devops"]
+      "required": ["monorepo-architecture-guardian", "turbo"],
+      "optional": []
     },
     "F1": {
-      "required": ["enterprise-architecture", "senior-fullstack", "nestjs", "prisma", "orpc"],
+      "required": ["monorepo-architecture-guardian", "nestjs", "prisma", "orpc"],
       "optional": ["vitest", "playwright"]
     },
     "F2": {
-      "required": ["vitest", "playwright", "testing-library", "enterprise-security", "enterprise-devops"],
-      "optional": ["enterprise-performance"]
+      "required": ["vitest", "playwright", "testing-library", "security", "turbo"],
+      "optional": []
     }
   }
 }

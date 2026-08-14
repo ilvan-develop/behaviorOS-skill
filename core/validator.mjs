@@ -29,9 +29,25 @@ export function validateGovernance(governanceDir) {
     },
   };
 
-  // Required files
+  // opencode.json goes to project root (parent of governance dir)
+  const projectRoot = join(governanceDir, '..');
+  const opencodePath = join(projectRoot, 'opencode.json');
+  
+  if (!existsSync(opencodePath)) {
+    results.errors.push('Missing required file: opencode.json (should be in project root)');
+    results.files.missing.push('opencode.json');
+    results.valid = false;
+  } else {
+    results.files.present.push('opencode.json');
+    const validationResult = validateJSON(opencodePath);
+    if (!validationResult.valid) {
+      results.errors.push(`Invalid JSON in opencode.json: ${validationResult.error}`);
+      results.valid = false;
+    }
+  }
+
+  // Required files in governance directory
   const requiredFiles = [
-    'opencode.json',
     'INSTRUCTIONS.md',
     'permissions-matrix.json',
     'skill-gate.json',

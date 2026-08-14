@@ -56,9 +56,17 @@ export function generateGovernance(config) {
     mkdirSync(auditDir, { recursive: true });
   }
 
-  // Generate files
-  const files = [
-    'opencode.json',
+  // Create skills directory
+  const skillsDir = join(targetDir, '.opencode', 'skills');
+  if (!existsSync(skillsDir)) {
+    mkdirSync(skillsDir, { recursive: true });
+  }
+
+  // Files that go to project root (OpenCode schema)
+  const rootFiles = ['opencode.json'];
+
+  // Files that go to .opencode/governance/
+  const governanceFiles = [
     'INSTRUCTIONS.md',
     'permissions-matrix.json',
     'skill-gate.json',
@@ -72,7 +80,26 @@ export function generateGovernance(config) {
 
   const generatedFiles = [];
 
-  for (const file of files) {
+  // Generate root files (opencode.json goes to project root)
+  for (const file of rootFiles) {
+    const sourcePath = join(templateDir, 'governance', file);
+    const targetPath = join(targetDir, file);
+    
+    if (existsSync(sourcePath)) {
+      let content = readFileSync(sourcePath, 'utf8');
+      
+      // Replace placeholders
+      content = content.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
+      content = content.replace(/\{\{PROJECT_DESCRIPTION\}\}/g, projectDescription || projectName);
+      content = content.replace(/\{\{CRITICAL_PHASES\}\}/g, JSON.stringify(criticalPhases));
+      
+      writeFileSync(targetPath, content);
+      generatedFiles.push(file);
+    }
+  }
+
+  // Generate governance files (.opencode/governance/)
+  for (const file of governanceFiles) {
     const sourcePath = join(templateDir, 'governance', file);
     const targetPath = join(governanceDir, file);
     
@@ -95,6 +122,7 @@ export function generateGovernance(config) {
     governanceDir,
     memoryDir,
     auditDir,
+    skillsDir,
   };
 }
 

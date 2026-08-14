@@ -302,27 +302,38 @@ Controls production readiness checks.
 
 Controls agents and their skills.
 
-**Location:** `.opencode/governance/opencode.json`
+**Location:** `opencode.json` (project root)
+
+**Important:** This file goes to the project root, NOT to `.opencode/governance/`. It follows the official OpenCode schema.
 
 **How to customize:**
 
 ```json
 {
-  "agents": {
+  "$schema": "https://opencode.ai/config.json",
+  "project": "my-project",
+  "description": "My project description",
+  "skills": {
+    "paths": [".opencode/skills", ".agents/skills"]
+  },
+  "agent": {
     "orchestrator": {
-      "description": "Coordenador autônomo de todas as fases",
-      "maxAutonomyLevel": 2,
-      "canParallelize": true,
-      "skills": ["enterprise-architecture", "senior-fullstack", "turborepo"]
+      "description": "Main orchestrator",
+      "mode": "primary"
     },
-    "architect": {
-      "description": "Arquitetura e decisões de design",
-      "skills": ["enterprise-architecture", "senior-fullstack"]
+    "backend": {
+      "description": "APIs and business logic",
+      "mode": "subagent"
     },
-    "my-agent": {
+    "my-custom-agent": {
       "description": "My custom agent",
-      "skills": ["my-skill", "other-skill"]
+      "mode": "subagent"
     }
+  },
+  "permission": {
+    "bash": "ask",
+    "edit": "ask",
+    "write": "ask"
   }
 }
 ```
@@ -418,6 +429,35 @@ Code examples and patterns.
   }
 }
 ```
+
+### Cross-Cutting Anti-Patterns (enterprise-governance)
+
+When multiple skills document the same anti-pattern (e.g., tenant isolation, audit trail), centralize the rule in `enterprise-governance` and reference it from each skill.
+
+**Pattern:**
+
+```markdown
+### Tenant isolation
+> **Regra central:** Ver `enterprise-governance` secção "AG-01".
+> Implementação específica deste contexto abaixo.
+
+[Local anti-pattern examples]
+```
+
+**Benefits:**
+- Single source of truth for rules that affect multiple domains
+- Eliminates duplication (14 concepts consolidated to 1)
+- Consistent governance across all skills
+
+**Which rules to centralize:**
+- Rules affecting 2+ skills → centralize in enterprise-governance
+- Rules specific to 1 skill → keep local
+
+**Template availability:**
+- `fintech`: Full enterprise-governance (8 rules)
+- `ecommerce`: Enterprise-governance with PCI-DSS (6 rules)
+- `custom`: Minimal enterprise-governance (5 rules)
+- Other templates: Inherit from custom via installer fallback
 
 ## Custom Agents
 

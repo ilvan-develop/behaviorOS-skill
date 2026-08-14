@@ -58,6 +58,35 @@
 - Compilation cache, turbo mode
 - Nunca lento quando há caminho rápido
 
+### 11. Consultar docs atualizadas antes de implementar
+- SEMPRE usar context7 para verificar documentação oficial da lib/framework
+- NUNCA assumir APIs ou versões da memória
+- Verificar changelogs e breaking changes antes de upgrade
+- Documentação é fonte de verdade, não código existente
+
+### 12. Carregar skill relevante antes de cada tarefa
+- ANTES de escrever código, carregar a skill correspondente
+- Ler anti-patterns da skill antes de implementar
+- Seguir convenções documentadas na skill
+- Se não há skill, pesquisar melhores práticas antes de implementar
+
+### 13. Anti-patterns são proibidos
+- Verificar se o código viola anti-patterns documentados nas skills
+- Se viola, corrigir antes de commit
+- Cada skill tem sua lista de anti-patterns - consultar
+
+### 14. Design system first
+- ANTES de criar componente, verificar se existe no design system do projeto
+- NUNCA importar componentes de UI directamente - sempre via package compartilhado
+- Usar tokens semânticos, nunca hex hardcoded
+- Criar documentação para todo componente novo
+
+### 15. Anti-patterns cross-cutting
+- Regras que afetam múltiplas skills vivem em `enterprise-governance`
+- Cada skill referencia a regra central em vez de duplicar
+- Verificar `enterprise-governance` antes de implementar regras transversais
+- Anti-patterns locais documentam implementação específica do contexto
+
 ---
 
 ## Modelo de Autonomia Três Níveis

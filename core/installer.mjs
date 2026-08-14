@@ -6,7 +6,7 @@
  * Installs behaviorOS governance configuration.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, copyFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { generateGovernance, generateMemoryFiles } from './generator.mjs';
@@ -67,6 +67,12 @@ export function installFromTemplate(options) {
   // Validate installed configuration
   const validationResult = validateGovernance(governanceResult.governanceDir);
 
+  // Install skills from template
+  const skillsResult = installSkills(templateDir, targetDir, {
+    projectName,
+    projectDescription,
+  });
+
   return {
     success: true,
     template,
@@ -76,8 +82,85 @@ export function installFromTemplate(options) {
     auditDir: governanceResult.auditDir,
     generatedFiles: governanceResult.generatedFiles,
     memoryFiles: memoryResult.generatedFiles,
+    skills: skillsResult,
     validation: validationResult,
   };
+}
+
+/**
+ * Copy directory recursively
+ * @param {string} src - Source directory
+ * @param {string} dest - Destination directory
+ * @param {Object} options - Copy options
+ * @param {boolean} options.replacePlaceholders - Replace {{PROJECT_NAME}} etc.
+ * @param {string} options.projectName - Project name for placeholder replacement
+ * @param {string} options.projectDescription - Project description for placeholder replacement
+ */
+function copyDirRecursive(src, dest, options = {}) {
+  if (!existsSync(dest)) {
+    mkdirSync(dest, { recursive: true });
+  }
+
+  const entries = readdirSync(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = join(src, entry.name);
+    const destPath = join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      copyDirRecursive(srcPath, destPath, options);
+    } else {
+      if (options.replacePlaceholders) {
+        let content = readFileSync(srcPath, 'utf8');
+        content = content.replace(/\{\{PROJECT_NAME\}\}/g, options.projectName || 'my-project');
+        content = content.replace(/\{\{PROJECT_DESCRIPTION\}\}/g, options.projectDescription || 'My project');
+        writeFileSync(destPath, content);
+      } else {
+        copyFileSync(srcPath, destPath);
+      }
+    }
+  }
+}
+
+/**
+ * Install skills from template
+ * @param {string} templateDir - Template directory path
+ * @param {string} targetDir - Target project directory
+ * @param {Object} options - Installation options
+ * @returns {Object} Result with installed skills info
+ */
+function installSkills(templateDir, targetDir, options = {}) {
+  const templateSkillsDir = join(templateDir, 'skills');
+  const targetSkillsDir = join(targetDir, '.opencode', 'skills');
+
+  // If template has skills, copy them
+  if (existsSync(templateSkillsDir)) {
+    if (!existsSync(targetSkillsDir)) {
+      mkdirSync(targetSkillsDir, { recursive: true });
+    }
+    copyDirRecursive(templateSkillsDir, targetSkillsDir, {
+      replacePlaceholders: true,
+      projectName: options.projectName,
+      projectDescription: options.projectDescription,
+    });
+    return { success: true, source: 'template', skillsDir: targetSkillsDir };
+  }
+
+  // Fallback: copy from custom template if available
+  const customSkillsDir = join(ROOT_DIR, 'templates', 'custom', 'skills');
+  if (existsSync(customSkillsDir)) {
+    if (!existsSync(targetSkillsDir)) {
+      mkdirSync(targetSkillsDir, { recursive: true });
+    }
+    copyDirRecursive(customSkillsDir, targetSkillsDir, {
+      replacePlaceholders: true,
+      projectName: options.projectName,
+      projectDescription: options.projectDescription,
+    });
+    return { success: true, source: 'custom-fallback', skillsDir: targetSkillsDir };
+  }
+
+  return { success: false, source: 'none', message: 'No skills found in template or custom fallback' };
 }
 
 /**

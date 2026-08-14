@@ -56,7 +56,7 @@ After installation, your project will have:
 
 ```
 your-project/
-├── opencode.json                    # Central configuration
+├── opencode.json                    # OpenCode config (PROJECT ROOT)
 └── .opencode/
     ├── governance/
     │   ├── INSTRUCTIONS.md          # Absolute rules
@@ -68,6 +68,7 @@ your-project/
     │   ├── audit.json               # Audit configuration
     │   ├── security-gates.json      # Security validations
     │   └── production-gate.json     # Production readiness
+    ├── skills/                      # Local skills
     ├── memory/
     │   ├── decisions.md
     │   ├── patterns.md
@@ -76,6 +77,8 @@ your-project/
     │   └── scope-history.md
     └── audit/
 ```
+
+**Important:** `opencode.json` goes to the **project root**, NOT to `.opencode/governance/`. This follows the official OpenCode schema.
 
 ## Validation
 

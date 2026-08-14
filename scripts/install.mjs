@@ -163,6 +163,28 @@ async function main() {
       console.log('\nBlueprint template available at:', blueprintDir);
     }
 
+    // Copy skills from template
+    const templateSkillsDir = join(templateDir, 'skills');
+    const targetSkillsDir = join(targetDir, '.opencode', 'skills');
+
+    if (existsSync(templateSkillsDir)) {
+      if (!existsSync(targetSkillsDir)) {
+        mkdirSync(targetSkillsDir, { recursive: true });
+      }
+      copyDirSync(templateSkillsDir, targetSkillsDir);
+      console.log('\n  Skills installed from template');
+    } else {
+      // Fallback to custom template skills
+      const customSkillsDir = join(ROOT_DIR, 'templates', 'custom', 'skills');
+      if (existsSync(customSkillsDir)) {
+        if (!existsSync(targetSkillsDir)) {
+          mkdirSync(targetSkillsDir, { recursive: true });
+        }
+        copyDirSync(customSkillsDir, targetSkillsDir);
+        console.log('\n  Skills installed from custom fallback');
+      }
+    }
+
   } else if (blueprintPath) {
     // Install from blueprint
     console.log(`Installing from blueprint: ${blueprintPath}\n`);

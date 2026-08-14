@@ -378,6 +378,28 @@ describe('behaviorOS Configuration Validator', () => {
           assert.ok(content.includes('Fases'), `${template}: Missing Phases section`);
           assert.ok(content.includes('Regras Imutáveis'), `${template}: Missing Immutable Rules section`);
         });
+
+        it('should have enterprise-governance skill in templates with skills directory', () => {
+          const skillsDir = join(TEMPLATES_DIR, template, 'skills');
+          
+          if (!existsSync(skillsDir)) {
+            console.log(`Skipping ${template} - no skills directory`);
+            return;
+          }
+
+          const governanceSkillPath = join(skillsDir, 'enterprise-governance', 'SKILL.md');
+          assert.ok(
+            existsSync(governanceSkillPath),
+            `${template}: Skills directory exists but missing enterprise-governance/SKILL.md`
+          );
+
+          // Validate skill has required frontmatter
+          const content = readFileSync(governanceSkillPath, 'utf-8');
+          assert.ok(content.includes('name: enterprise-governance'), `${template}: enterprise-governance missing name in frontmatter`);
+          assert.ok(content.includes('description:'), `${template}: enterprise-governance missing description in frontmatter`);
+          assert.ok(content.includes('## Anti-Patterns Cross-Cutting'), `${template}: enterprise-governance missing anti-patterns section`);
+          assert.ok(content.includes('## Mapa de Referência'), `${template}: enterprise-governance missing reference map section`);
+        });
       });
     });
   });
