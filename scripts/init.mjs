@@ -177,7 +177,7 @@ async function installFromBlueprint(blueprintDir) {
     
     // Copy scripts
     const sourceScriptsDir = join(ROOT_DIR, 'scripts');
-    const scriptFiles = ['enforce.ps1', 'audit-logger.ps1', 'skill-tracker.ps1', 'agent-loop.ps1'];
+    const scriptFiles = ['enforce.ps1', 'audit-logger.ps1', 'skill-tracker.ps1', 'agent-loop.ps1', 'run-pipeline.ps1', 'state-manager.ps1', 'gates.ps1', 'validate.mjs'];
     
     for (const file of scriptFiles) {
       const src = join(sourceScriptsDir, file);
@@ -376,6 +376,44 @@ async function main() {
     };
     copyDirRecursive(templateSkillsDir, targetSkillsDir);
     console.log('  Skills: Copied from template');
+  }
+
+  // Copy scripts to project root
+  const scriptsDir = join(targetDir, 'scripts');
+  if (!existsSync(scriptsDir)) {
+    mkdirSync(scriptsDir, { recursive: true });
+  }
+  
+  const sourceScriptsDir = join(ROOT_DIR, 'scripts');
+  const scriptFiles = ['enforce.ps1', 'audit-logger.ps1', 'skill-tracker.ps1', 'agent-loop.ps1', 'run-pipeline.ps1', 'state-manager.ps1', 'gates.ps1', 'validate.mjs'];
+  
+  for (const file of scriptFiles) {
+    const src = join(sourceScriptsDir, file);
+    const dest = join(scriptsDir, file);
+    if (existsSync(src)) {
+      let content = readFileSync(src, 'utf8');
+      content = content.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
+      writeFileSync(dest, content);
+      console.log(`  Created: scripts/${file}`);
+    }
+  }
+  
+  // Copy guard scripts
+  const guardsDir = join(scriptsDir, 'guards');
+  if (!existsSync(guardsDir)) {
+    mkdirSync(guardsDir, { recursive: true });
+  }
+  
+  const guardFiles = ['skill-guard.ps1', 'tool-guard.ps1', 'permission-guard.ps1', 'state-guard.ps1'];
+  for (const file of guardFiles) {
+    const src = join(sourceScriptsDir, 'guards', file);
+    const dest = join(guardsDir, file);
+    if (existsSync(src)) {
+      let content = readFileSync(src, 'utf8');
+      content = content.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
+      writeFileSync(dest, content);
+      console.log(`  Created: scripts/guards/${file}`);
+    }
   }
 
   console.log('\n✅ behaviorOS installed successfully!');

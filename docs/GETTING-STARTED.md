@@ -56,21 +56,36 @@ After installation, your project will have:
 
 ```
 your-project/
-├── opencode.json                    # OpenCode config (PROJECT ROOT)
+├── AGENTS.md                         # Agent roles and governance rules
+├── opencode.json                     # OpenCode config (PROJECT ROOT)
+├── scripts/                          # Governance scripts
+│   ├── agent-loop.ps1                # Main orchestrator loop
+│   ├── audit-logger.ps1              # Audit logging
+│   ├── enforce.ps1                   # Enforcement script
+│   ├── gates.ps1                     # Gate checks
+│   ├── run-pipeline.ps1              # Pipeline runner
+│   ├── skill-tracker.ps1             # Skill tracking
+│   ├── state-manager.ps1             # State management
+│   ├── validate.mjs                  # Configuration validator
+│   └── guards/
+│       ├── permission-guard.ps1      # Permission checks
+│       ├── skill-guard.ps1           # Skill validation
+│       ├── state-guard.ps1           # State validation
+│       └── tool-guard.ps1            # Tool validation
 ├── .agents/
-│   └── skills/                      # Project-level agent skills
+│   └── skills/                       # Project-level agent skills
 └── .opencode/
     ├── governance/
-    │   ├── INSTRUCTIONS.md          # Absolute rules
-    │   ├── permissions-matrix.json  # Permission matrix
-    │   ├── skill-gate.json          # Skill validation
-    │   ├── tool-gate.json           # Tool validation
-    │   ├── state-machine.json       # Orchestrator lifecycle
-    │   ├── memory.json              # Memory configuration
-    │   ├── audit.json               # Audit configuration
-    │   ├── security-gates.json      # Security validations
-    │   └── production-gate.json     # Production readiness
-    ├── skills/                      # Local skills
+    │   ├── INSTRUCTIONS.md           # Absolute rules
+    │   ├── permissions-matrix.json   # Permission matrix
+    │   ├── skill-gate.json           # Skill validation
+    │   ├── tool-gate.json            # Tool validation
+    │   ├── state-machine.json        # Orchestrator lifecycle
+    │   ├── memory.json               # Memory configuration
+    │   ├── audit.json                # Audit configuration
+    │   ├── security-gates.json       # Security validations
+    │   └── production-gate.json      # Production readiness
+    ├── skills/                       # Local skills
     ├── memory/
     │   ├── decisions.md
     │   ├── patterns.md
@@ -80,7 +95,7 @@ your-project/
     └── audit/
 ```
 
-**Important:** `opencode.json` goes to the **project root**, NOT to `.opencode/governance/`. This follows the official OpenCode schema.
+**Important:** `opencode.json` and `AGENTS.md` go to the **project root**, NOT to `.opencode/governance/`. Scripts go to `<project-root>/scripts/`.
 
 ## Skills System
 

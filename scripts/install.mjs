@@ -136,7 +136,6 @@ async function main() {
 
     // Copy governance files
     const governanceFiles = [
-      'opencode.json',
       'INSTRUCTIONS.md',
       'permissions-matrix.json',
       'skill-gate.json',
@@ -154,6 +153,77 @@ async function main() {
       
       if (customizeFile(sourcePath, targetPath)) {
         console.log(`  Created: ${file}`);
+      }
+    }
+
+    // Copy opencode.json to project root
+    const opencodeSourcePath = join(templateDir, 'governance', 'opencode.json');
+    const opencodeTargetPath = join(targetDir, 'opencode.json');
+    if (existsSync(opencodeSourcePath)) {
+      let opencodeContent = readFileSync(opencodeSourcePath, 'utf8');
+      const projectName = process.env.PROJECT_NAME || 'my-project';
+      const projectDescription = process.env.PROJECT_DESCRIPTION || 'My project';
+      opencodeContent = opencodeContent.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
+      opencodeContent = opencodeContent.replace(/\{\{PROJECT_DESCRIPTION\}\}/g, projectDescription);
+      writeFileSync(opencodeTargetPath, opencodeContent);
+      console.log('  Created: opencode.json');
+    }
+
+    // Copy AGENTS.md to project root
+    const agentsSourcePath = join(templateDir, 'governance', 'AGENTS.md');
+    const agentsTargetPath = join(targetDir, 'AGENTS.md');
+    if (existsSync(agentsSourcePath)) {
+      let agentsContent = readFileSync(agentsSourcePath, 'utf8');
+      const projectName = process.env.PROJECT_NAME || 'my-project';
+      const projectDescription = process.env.PROJECT_DESCRIPTION || 'My project';
+      agentsContent = agentsContent.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
+      agentsContent = agentsContent.replace(/\{\{DOMAIN\}\}/g, projectDescription || 'web');
+      agentsContent = agentsContent.replace(/\{\{STACK\}\}/g, 'TypeScript');
+      agentsContent = agentsContent.replace(/\{\{PHASES\}\}/g, '7');
+      agentsContent = agentsContent.replace(/\{\{CRITICAL_PHASES\}\}/g, JSON.stringify(['F2', 'F3']));
+      agentsContent = agentsContent.replace(/\{\{DOMAIN_RULES\}\}/g, 'Follow project conventions');
+      agentsContent = agentsContent.replace(/\{\{DOMAIN_SKILLS\}\}/g, 'none');
+      writeFileSync(agentsTargetPath, agentsContent);
+      console.log('  Created: AGENTS.md');
+    }
+
+    // Copy scripts to project root
+    const scriptsDir = join(targetDir, 'scripts');
+    if (!existsSync(scriptsDir)) {
+      mkdirSync(scriptsDir, { recursive: true });
+    }
+    
+    const sourceScriptsDir = join(ROOT_DIR, 'scripts');
+    const scriptFiles = ['enforce.ps1', 'audit-logger.ps1', 'skill-tracker.ps1', 'agent-loop.ps1', 'run-pipeline.ps1', 'state-manager.ps1', 'gates.ps1', 'validate.mjs'];
+    
+    for (const file of scriptFiles) {
+      const src = join(sourceScriptsDir, file);
+      const dest = join(scriptsDir, file);
+      if (existsSync(src)) {
+        let content = readFileSync(src, 'utf8');
+        const projectName = process.env.PROJECT_NAME || 'my-project';
+        content = content.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
+        writeFileSync(dest, content);
+        console.log(`  Created: scripts/${file}`);
+      }
+    }
+    
+    // Copy guard scripts
+    const guardsDir = join(scriptsDir, 'guards');
+    if (!existsSync(guardsDir)) {
+      mkdirSync(guardsDir, { recursive: true });
+    }
+    
+    const guardFiles = ['skill-guard.ps1', 'tool-guard.ps1', 'permission-guard.ps1', 'state-guard.ps1'];
+    for (const file of guardFiles) {
+      const src = join(sourceScriptsDir, 'guards', file);
+      const dest = join(guardsDir, file);
+      if (existsSync(src)) {
+        let content = readFileSync(src, 'utf8');
+        const projectName = process.env.PROJECT_NAME || 'my-project';
+        content = content.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
+        writeFileSync(dest, content);
+        console.log(`  Created: scripts/guards/${file}`);
       }
     }
 

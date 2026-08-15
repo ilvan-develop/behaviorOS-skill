@@ -54,18 +54,33 @@ opencode skill add behaviorOS
 
 ```
 your-project/
-├── opencode.json                    # Central configuration
+├── AGENTS.md                         # Agent roles and governance rules
+├── opencode.json                     # Central configuration
+├── scripts/                          # Governance scripts
+│   ├── agent-loop.ps1                # Main orchestrator loop
+│   ├── audit-logger.ps1              # Audit logging
+│   ├── enforce.ps1                   # Enforcement script
+│   ├── gates.ps1                     # Gate checks
+│   ├── run-pipeline.ps1              # Pipeline runner
+│   ├── skill-tracker.ps1             # Skill tracking
+│   ├── state-manager.ps1             # State management
+│   ├── validate.mjs                  # Configuration validator
+│   └── guards/
+│       ├── permission-guard.ps1      # Permission checks
+│       ├── skill-guard.ps1           # Skill validation
+│       ├── state-guard.ps1           # State validation
+│       └── tool-guard.ps1            # Tool validation
 └── .opencode/
     ├── governance/
-    │   ├── INSTRUCTIONS.md          # Absolute rules
-    │   ├── permissions-matrix.json  # Permission matrix
-    │   ├── skill-gate.json          # Skill validation
-    │   ├── tool-gate.json           # Tool validation
-    │   ├── state-machine.json       # Orchestrator lifecycle
-    │   ├── memory.json              # Memory configuration
-    │   ├── audit.json               # Audit configuration
-    │   ├── security-gates.json      # Security validations
-    │   └── production-gate.json     # Production readiness
+    │   ├── INSTRUCTIONS.md           # Absolute rules
+    │   ├── permissions-matrix.json   # Permission matrix
+    │   ├── skill-gate.json           # Skill validation
+    │   ├── tool-gate.json            # Tool validation
+    │   ├── state-machine.json        # Orchestrator lifecycle
+    │   ├── memory.json               # Memory configuration
+    │   ├── audit.json                # Audit configuration
+    │   ├── security-gates.json       # Security validations
+    │   └── production-gate.json      # Production readiness
     ├── memory/
     │   ├── decisions.md
     │   ├── patterns.md
