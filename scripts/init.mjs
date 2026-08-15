@@ -138,6 +138,22 @@ async function installFromBlueprint(blueprintDir) {
     writeFileSync(join(governanceDir, 'blueprint.json'), JSON.stringify(blueprint, null, 2));
     console.log('  Created: blueprint.json');
     
+    // Copy AGENTS.md to project root
+    const agentsSourcePath = join(templateDir, 'governance', 'AGENTS.md');
+    const agentsTargetPath = join(targetDir, 'AGENTS.md');
+    if (existsSync(agentsSourcePath)) {
+      let agentsContent = readFileSync(agentsSourcePath, 'utf8');
+      agentsContent = agentsContent.replace(/\{\{PROJECT_NAME\}\}/g, blueprint.name);
+      agentsContent = agentsContent.replace(/\{\{DOMAIN\}\}/g, blueprint.domain || 'web');
+      agentsContent = agentsContent.replace(/\{\{STACK\}\}/g, blueprint.stack || 'TypeScript');
+      agentsContent = agentsContent.replace(/\{\{PHASES\}\}/g, '7');
+      agentsContent = agentsContent.replace(/\{\{CRITICAL_PHASES\}\}/g, JSON.stringify(blueprint.criticalPhases || ['F2', 'F3']));
+      agentsContent = agentsContent.replace(/\{\{DOMAIN_RULES\}\}/g, blueprint.domainRules || 'Follow project conventions');
+      agentsContent = agentsContent.replace(/\{\{DOMAIN_SKILLS\}\}/g, blueprint.domainSkills || 'none');
+      writeFileSync(agentsTargetPath, agentsContent);
+      console.log('  Created: AGENTS.md');
+    }
+    
     // Create directories
     const memoryDir = join(targetDir, '.opencode', 'memory');
     const auditDir = join(targetDir, '.opencode', 'audit');
@@ -281,6 +297,22 @@ async function main() {
       writeFileSync(targetPath, content);
       console.log(`  Created: ${file}`);
     }
+  }
+
+  // Copy AGENTS.md to project root
+  const agentsSourcePath = join(templateDir, 'governance', 'AGENTS.md');
+  const agentsTargetPath = join(targetDir, 'AGENTS.md');
+  if (existsSync(agentsSourcePath)) {
+    let agentsContent = readFileSync(agentsSourcePath, 'utf8');
+    agentsContent = agentsContent.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
+    agentsContent = agentsContent.replace(/\{\{DOMAIN\}\}/g, projectDescription || 'web');
+    agentsContent = agentsContent.replace(/\{\{STACK\}\}/g, 'TypeScript');
+    agentsContent = agentsContent.replace(/\{\{PHASES\}\}/g, '7');
+    agentsContent = agentsContent.replace(/\{\{CRITICAL_PHASES\}\}/g, JSON.stringify(criticalPhases));
+    agentsContent = agentsContent.replace(/\{\{DOMAIN_RULES\}\}/g, 'Follow project conventions');
+    agentsContent = agentsContent.replace(/\{\{DOMAIN_SKILLS\}\}/g, 'none');
+    writeFileSync(agentsTargetPath, agentsContent);
+    console.log('  Created: AGENTS.md');
   }
 
   // Create memory directory
