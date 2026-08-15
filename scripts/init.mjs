@@ -103,9 +103,8 @@ async function installFromBlueprint(blueprintDir) {
       mkdirSync(governanceDir, { recursive: true });
     }
     
-    // Read and customize template files
+    // Read and customize template files (governance)
     const files = [
-      'opencode.json',
       'INSTRUCTIONS.md',
       'permissions-matrix.json',
       'skill-gate.json',
@@ -137,6 +136,17 @@ async function installFromBlueprint(blueprintDir) {
     // Copy blueprint.json
     writeFileSync(join(governanceDir, 'blueprint.json'), JSON.stringify(blueprint, null, 2));
     console.log('  Created: blueprint.json');
+    
+    // Copy opencode.json to project root
+    const opencodeSourcePath = join(templateDir, 'governance', 'opencode.json');
+    const opencodeTargetPath = join(targetDir, 'opencode.json');
+    if (existsSync(opencodeSourcePath)) {
+      let opencodeContent = readFileSync(opencodeSourcePath, 'utf8');
+      opencodeContent = opencodeContent.replace(/\{\{PROJECT_NAME\}\}/g, blueprint.name);
+      opencodeContent = opencodeContent.replace(/\{\{PROJECT_DESCRIPTION\}\}/g, blueprint.description || blueprint.name);
+      writeFileSync(opencodeTargetPath, opencodeContent);
+      console.log('  Created: opencode.json');
+    }
     
     // Copy AGENTS.md to project root
     const agentsSourcePath = join(templateDir, 'governance', 'AGENTS.md');
@@ -268,9 +278,8 @@ async function main() {
     mkdirSync(governanceDir, { recursive: true });
   }
 
-  // Read and customize template files
+  // Read and customize template files (governance)
   const files = [
-    'opencode.json',
     'INSTRUCTIONS.md',
     'permissions-matrix.json',
     'skill-gate.json',
@@ -297,6 +306,17 @@ async function main() {
       writeFileSync(targetPath, content);
       console.log(`  Created: ${file}`);
     }
+  }
+
+  // Copy opencode.json to project root
+  const opencodeSourcePath = join(templateDir, 'governance', 'opencode.json');
+  const opencodeTargetPath = join(targetDir, 'opencode.json');
+  if (existsSync(opencodeSourcePath)) {
+    let opencodeContent = readFileSync(opencodeSourcePath, 'utf8');
+    opencodeContent = opencodeContent.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
+    opencodeContent = opencodeContent.replace(/\{\{PROJECT_DESCRIPTION\}\}/g, projectDescription || projectName);
+    writeFileSync(opencodeTargetPath, opencodeContent);
+    console.log('  Created: opencode.json');
   }
 
   // Copy AGENTS.md to project root
