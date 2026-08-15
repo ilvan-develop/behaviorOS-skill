@@ -1,20 +1,20 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    behaviorOS Pipeline - Loop principal de desenvolvimento autónomo
+    behaviorOS Pipeline - Loop principal de desenvolvimento autonomo
 
 .DESCRIPTION
-    Implementa o ciclo autónomo F0->F6 do behaviorOS.
-    Lê o state-machine.json, valida gates, atualiza estado e regista audit trail.
+    Implementa o ciclo autonomo F0->F6 do behaviorOS.
+    Le o state-machine.json, valida gates, atualiza estado e regista audit trail.
 
 .PARAMETER Phase
     Fase a executar (F0, F1, F2, F3, F4, F5, F6)
 
 .PARAMETER Scope
-    Escopo específico (opcional)
+    Escopo especifico (opcional)
 
 .PARAMETER DryRun
-    Simula execução sem alterar ficheiros
+    Simula execucao sem alterar ficheiros
 
 .EXAMPLE
     .\run-pipeline.ps1 -Phase F0
@@ -34,12 +34,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Caminhos base
-$BaseDir = Split-Path -Parent $PSScriptRoot
-$GovernanceDir = Join-Path $BaseDir "governance"
-$MemoryDir = Join-Path $BaseDir "memory"
-$AuditDir = Join-Path $BaseDir "audit"
-$LogsDir = Join-Path $BaseDir "logs"
+# Caminhos base (correctos: .opencode/governance, .opencode/memory, etc.)
+$ProjectRoot = Split-Path -Parent $PSScriptRoot
+$GovernanceDir = Join-Path (Join-Path $ProjectRoot ".opencode") "governance"
+$MemoryDir = Join-Path (Join-Path $ProjectRoot ".opencode") "memory"
+$AuditDir = Join-Path (Join-Path $ProjectRoot ".opencode") "audit"
+$LogsDir = Join-Path (Join-Path $ProjectRoot ".opencode") "logs"
 $ScriptsDir = $PSScriptRoot
 
 # Ficheiros
@@ -51,7 +51,7 @@ $AuditLogFile = Join-Path $AuditDir "audit.log"
 $StateFile = Join-Path $LogsDir "state.json"
 
 # ─────────────────────────────────────────────────────────
-# Funções auxiliares
+# Funcoes auxiliares
 # ─────────────────────────────────────────────────────────
 
 function Write-Log {
@@ -74,7 +74,7 @@ function Write-Log {
 function Read-JsonFile {
     param([string]$Path)
     if (-not (Test-Path $Path)) {
-        throw "Ficheiro não encontrado: $Path"
+        throw "Ficheiro nao encontrado: $Path"
     }
     return Get-Content $Path -Raw | ConvertFrom-Json
 }
@@ -92,7 +92,7 @@ function Update-Memory {
     if (-not $DryRun) {
         Set-Content -Path $memoryFile -Value $Content
     }
-    Write-Log "Memória atualizada: $Section" "OK"
+    Write-Log "Memoria atualizada: $Section" "OK"
 }
 
 function Add-AuditEntry {
@@ -109,9 +109,9 @@ function Add-AuditEntry {
 # Passo 1: Ler e validar estado actual
 # ─────────────────────────────────────────────────────────
 
-Write-Log "═══════════════════════════════════════════════════"
+Write-Log "==============================================="
 Write-Log "behaviorOS Pipeline - Fase $Phase"
-Write-Log "═══════════════════════════════════════════════════"
+Write-Log "==============================================="
 
 $stateMachine = Read-JsonFile $StateMachineFile
 $currentState = $stateMachine.currentState
@@ -119,81 +119,89 @@ $currentState = $stateMachine.currentState
 Write-Log "Estado actual: $currentState"
 Write-Log "Fase solicitada: $Phase"
 
-# Verificar se a fase solicitada é a actual
+# Verificar se a fase solicitada e a actual
 if ($Phase -ne $currentState) {
-    Write-Log "Fase solicitada ($Phase) não é a fase actual ($currentState)" "WARN"
-    Write-Log "A avançar para a fase $Phase..." "WARN"
+    Write-Log "Fase solicitada ($Phase) nao e a fase actual ($currentState)" "WARN"
+    Write-Log "A avancar para a fase $Phase..." "WARN"
 }
 
 # Encontrar a fase no state machine
 $phaseInfo = $stateMachine.states | Where-Object { $_.id -eq $Phase }
 if (-not $phaseInfo) {
-    throw "Fase $Phase não encontrada no state-machine.json"
+    throw "Fase $Phase nao encontrada no state-machine.json"
 }
 
 Write-Log "Fase: $($phaseInfo.name) - $($phaseInfo.description)"
-Write-Log "Crítica: $($phaseInfo.isCritical)"
+Write-Log "Critica: $($phaseInfo.isCritical)"
 
 # ─────────────────────────────────────────────────────────
-# Passo 2: Verificar permissões
+# Passo 2: Verificar permissoes (formato matrix{})
 # ─────────────────────────────────────────────────────────
 
-Write-Log "══ Verificando permissões para $Phase ══"
+Write-Log "== Verificando permissoes para $Phase =="
 
 $permissions = Read-JsonFile $PermissionsFile
-$phasePermissions = $permissions.phases | Where-Object { $_.phase -eq $Phase }
 
-if (-not $phasePermissions) {
-    Write-Log "Permissões não encontradas para $Phase" "WARN"
+# Formato matrix{}: { "matrix": { "F0": { "allowedAgents": [...] } } }
+$phaseConfig = $permissions.matrix.PSObject.Properties | Where-Object { $_.Name -eq $Phase }
+
+if (-not $phaseConfig) {
+    Write-Log "Permissoes nao encontradas para $Phase" "WARN"
 } else {
-    Write-Log "Agentes permitidos: $($phasePermissions.agents.allowed -join ', ')"
-    Write-Log "Aprovações requeridas: $($phasePermissions.approvals.required)"
-    Add-AuditEntry "PERMISSIONS_CHECK" "Agentes: $($phasePermissions.agents.allowed -join ', ')"
+    $phaseData = $phaseConfig.Value
+    $allowedAgents = @($phaseData.allowedAgents)
+    Write-Log "Agentes permitidos: $($allowedAgents -join ', ')"
+    Write-Log "Aprovacoes requeridas: $($phaseData.requiredApprovals)"
+    Add-AuditEntry "PERMISSIONS_CHECK" "Agentes: $($allowedAgents -join ', ')"
 }
 
 # ─────────────────────────────────────────────────────────
-# Passo 3: Carregar skills obrigatórias
+# Passo 3: Carregar skills obrigatorias (formato phases{})
 # ─────────────────────────────────────────────────────────
 
-Write-Log "══ Carregando skills para $Phase ══"
+Write-Log "== Carregando skills para $Phase =="
 
 $skillGate = Read-JsonFile $SkillGateFile
-$phaseSkills = $skillGate.phases | Where-Object { $_.phase -eq $Phase }
 
-if (-not $phaseSkills) {
-    Write-Log "Skills não encontradas para $Phase" "WARN"
+# Formato phases{}: { "phases": { "F0": { "required": [...] } } }
+$phaseSkillsConfig = $skillGate.phases.PSObject.Properties | Where-Object { $_.Name -eq $Phase }
+
+if (-not $phaseSkillsConfig) {
+    Write-Log "Skills nao encontradas para $Phase" "WARN"
 } else {
-    Write-Log "Skills obrigatórias: $($phaseSkills.required -join ', ')"
-    if ($phaseSkills.optional) {
-        Write-Log "Skills opcionais: $($phaseSkills.optional -join ', ')"
+    $phaseSkillsData = $phaseSkillsConfig.Value
+    $requiredSkills = @($phaseSkillsData.required)
+    Write-Log "Skills obrigatorias: $($requiredSkills -join ', ')"
+    if ($phaseSkillsData.optional) {
+        Write-Log "Skills opcionais: $($phaseSkillsData.optional -join ', ')"
     }
-    Add-AuditEntry "SKILLS_LOADED" "Obrigatórias: $($phaseSkills.required -join ', ')"
+    Add-AuditEntry "SKILLS_LOADED" "Obrigatorias: $($requiredSkills -join ', ')"
 }
 
 # ─────────────────────────────────────────────────────────
-# Passo 4: Ler instruções imutáveis
+# Passo 4: Ler instrucoes imutiveis
 # ─────────────────────────────────────────────────────────
 
-Write-Log "══ Verificando instruções ══"
+Write-Log "== Verificando instrucoes =="
 
 if (Test-Path $InstructionsFile) {
     $instructions = Get-Content $InstructionsFile -Raw
     $ruleCount = ([regex]::Matches($instructions, "### \d+")).Count
-    Write-Log "Instruções carregadas: $ruleCount regras imutáveis"
+    Write-Log "Instrucoes carregadas: $ruleCount regras imutiveis"
     Add-AuditEntry "INSTRUCTIONS_LOADED" "$ruleCount regras"
 } else {
-    Write-Log "INSTRUCTIONS.md não encontrado" "ERROR"
+    Write-Log "INSTRUCTIONS.md nao encontrado" "ERROR"
 }
 
 # ─────────────────────────────────────────────────────────
 # Passo 5: Executar gates de qualidade
 # ─────────────────────────────────────────────────────────
 
-Write-Log "══ Executando gates de qualidade para $Phase ══"
+Write-Log "== Executando gates de qualidade para $Phase =="
 
 $gatesScript = Join-Path $ScriptsDir "gates.ps1"
 if (-not (Test-Path $gatesScript)) {
-    Write-Log "gates.ps1 não encontrado - a simular gates" "WARN"
+    Write-Log "gates.ps1 nao encontrado - a simular gates" "WARN"
     $gatesPassed = $true
 } else {
     try {
@@ -215,18 +223,18 @@ if ($gatesPassed) {
 }
 
 # ─────────────────────────────────────────────────────────
-# Passo 6: Validar transição de estado
+# Passo 6: Validar transicao de estado
 # ─────────────────────────────────────────────────────────
 
-Write-Log "══ Validando transição de estado ══"
+Write-Log "== Validando transicao de estado =="
 
 $allowedTransitions = $stateMachine.transitions | Where-Object { $_.from -eq $Phase }
 $nextPhases = @($allowedTransitions | ForEach-Object { $_.to })
 
 if ($nextPhases.Count -gt 0) {
-    Write-Log "Próximas fases possíveis: $($nextPhases -join ', ')"
-    $nextPhase = $nextPhases[0] # Primeira transição por defeito
-    Write-Log "Próxima fase: $nextPhase"
+    Write-Log "Proximas fases possiveis: $($nextPhases -join ', ')"
+    $nextPhase = $nextPhases[0] # Primeira transicao por defeito
+    Write-Log "Proxima fase: $nextPhase"
 } else {
     Write-Log "Fase terminal - pipeline completo" "OK"
     $nextPhase = $null
@@ -236,7 +244,7 @@ if ($nextPhases.Count -gt 0) {
 # Passo 7: Atualizar estado
 # ─────────────────────────────────────────────────────────
 
-Write-Log "══ Atualizando estado ══"
+Write-Log "== Atualizando estado =="
 
 # Actualizar state-machine.json
 $phaseInfo.status = "completed"
@@ -254,34 +262,34 @@ $memoryContent = @"
 # Fase Atual
 
 Fase atual: $Phase - $($phaseInfo.name)
-Status: Concluída
-Data de conclusão: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+Status: Concluida
+Data de conclusao: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
 
-## Próxima Fase
+## Proxima Fase
 $(if ($nextPhase) { "$nextPhase - $($nextPhaseInfo.name)" } else { "Pipeline completo" })
 "@
 Update-Memory "current-phase" $memoryContent
 
 # ─────────────────────────────────────────────────────────
-# Passo 8: Registar na memória
+# Passo 8: Registar na memoria
 # ─────────────────────────────────────────────────────────
 
-Write-Log "══ Atualizando memória ══"
+Write-Log "== Atualizando memoria =="
 
-# Adicionar decisão
+# Adicionar decisao
 $decisionContent = @"
 # Decisoes Arquiteturais
 
 ## Fase $Phase - $(Get-Date -Format 'yyyy-MM-dd')
 
-- Fase $Phase ($($phaseInfo.name)) concluída
+- Fase $Phase ($($phaseInfo.name)) concluida
 - Gates: Todos passaram
-- Próxima fase: $(if ($nextPhase) { "$nextPhase" } else { "Pipeline completo" })
-- Scope: $(if ($Scope) { $Scope } else { "Não definido" })
+- Proxima fase: $(if ($nextPhase) { "$nextPhase" } else { "Pipeline completo" })
+- Scope: $(if ($Scope) { $Scope } else { "Nao definido" })
 "@
 Update-Memory "decisions" $decisionContent
 
-# Adicionar padrão
+# Adicionar padrao
 $patternContent = @"
 # Padroes Descobertos
 
@@ -289,29 +297,29 @@ $patternContent = @"
 
 - Pipeline executado com sucesso para $Phase
 - Todos os gates de qualidade passaram
-- Estado actualizado para $(if ($nextPhase) { $nextPhase } else { "concluído" })
+- Estado actualizado para $(if ($nextPhase) { $nextPhase } else { "concluido" })
 "@
 Update-Memory "patterns" $patternContent
 
-# Adicionar lição
+# Adicionar licao
 $learningContent = @"
 # Licoes Aprendidas
 
 ## Fase $Phase - $(Get-Date -Format 'yyyy-MM-dd')
 
-- Execução da fase $Phase bem-sucedida
-- Importância de executar todos os gates na ordem correcta
-- Necessidade de actualizar memória após cada fase
+- Execucao da fase $Phase bem-sucedida
+- Importancia de executar todos os gates na ordem correcta
+- Necessidade de actualizar memoria apos cada fase
 "@
 Update-Memory "learnings" $learningContent
 
 # ─────────────────────────────────────────────────────────
-# Passo 9: Gerar relatório
+# Passo 9: Gerar relatorio
 # ─────────────────────────────────────────────────────────
 
-Write-Log "═══════════════════════════════════════════════════"
-Write-Log "RELATÓRIO DE CONCLUSÃO - FASE $Phase"
-Write-Log "═══════════════════════════════════════════════════"
+Write-Log "==============================================="
+Write-Log "RELATORIO DE CONCLUSAO - FASE $Phase"
+Write-Log "==============================================="
 
 $reportLines = @(
     "RELATORIO DE PIPELINE - FASE $Phase",
@@ -348,25 +356,25 @@ $report = $reportLines -join "`n"
 Write-Host ""
 Write-Host $report -ForegroundColor Cyan
 
-# Guardar relatório
+# Guardar relatorio
 $reportFile = Join-Path $LogsDir "report-$Phase-$(Get-Date -Format 'yyyyMMdd-HHmmss').md"
 if (-not $DryRun) {
     Set-Content -Path $reportFile -Value $report
-    Write-Log "Relatório guardado em: $reportFile" "OK"
+    Write-Log "Relatorio guardado em: $reportFile" "OK"
 }
 
 # ─────────────────────────────────────────────────────────
-# Passo 10: Verificar se fase é crítica
+# Passo 10: Verificar se fase e critica
 # ─────────────────────────────────────────────────────────
 
 if ($phaseInfo.isCritical) {
-    Write-Log "═══════════════════════════════════════════════════" "WARN"
-    Write-Log "ATENÇÃO: Fase crítica - Aprovação humana necessária" "WARN"
-    Write-Log "═══════════════════════════════════════════════════" "WARN"
-    Write-Log "A fase $Phase é crítica. Aguarde aprovação antes de avançar." "WARN"
-    Add-AuditEntry "CRITICAL_PHASE" "Aprovação humana necessária para $Phase"
+    Write-Log "===============================================" "WARN"
+    Write-Log "ATENCAO: Fase critica - Aprovacao humana necessaria" "WARN"
+    Write-Log "===============================================" "WARN"
+    Write-Log "A fase $Phase e critica. Aguarde aprovacao antes de avancar." "WARN"
+    Add-AuditEntry "CRITICAL_PHASE" "Aprovacao humana necessaria para $Phase"
 }
 
-Write-Log "═══════════════════════════════════════════════════"
-Write-Log "Pipeline $Phase concluído com sucesso"
-Write-Log "═══════════════════════════════════════════════════"
+Write-Log "==============================================="
+Write-Log "Pipeline $Phase concluido com sucesso"
+Write-Log "==============================================="

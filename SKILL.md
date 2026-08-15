@@ -65,14 +65,29 @@ behaviorOS is a governance system for autonomous software development. It enable
 
 ## Commands
 
+### PowerShell Scripts (Primary)
+
 | Command | Description |
 |---------|-------------|
-| `/behaviorOS init` | Interactive setup wizard |
-| `/behaviorOS install --template <type>` | Install from template |
-| `/behaviorOS install --blueprint <path>` | Install from blueprint |
-| `/behaviorOS validate` | Validate current configuration |
-| `/behaviorOS status` | Show current governance status |
-| `/behaviorOS migrate` | Migrate to new version |
+| `.\scripts\agent-loop.ps1` | Run full F0-F6 lifecycle |
+| `.\scripts\agent-loop.ps1 -Phase F0` | Execute specific phase |
+| `.\scripts\agent-loop.ps1 -Resume` | Resume from current state |
+| `.\scripts\agent-loop.ps1 -Reset all` | Reset all phases to F0 |
+| `.\scripts\agent-loop.ps1 -DryRun` | Simulate without changes |
+| `.\scripts\enforce.ps1 -Tool "write" -File "..." -Agent "backend" -Phase "F1"` | Run enforcement before tool call |
+| `.\scripts\state-manager.ps1 -Action get` | Get current state |
+| `.\scripts\state-manager.ps1 -Action list` | List all phases |
+| `.\scripts\skill-tracker.ps1 -Skill "prisma" -Agent "backend" -Phase "F1" -Action load` | Load a skill |
+
+### Node.js Scripts
+
+| Command | Description |
+|---------|-------------|
+| `node scripts/init.mjs` | Interactive setup wizard |
+| `node scripts/install.mjs --template fintech` | Install from template |
+| `node scripts/install.mjs --blueprint ./blueprint/` | Install from blueprint |
+| `node scripts/validate.mjs` | Validate configuration |
+| `node scripts/generate-blueprints.mjs` | Generate blueprint.json for all templates |
 
 ## What Gets Installed
 

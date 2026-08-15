@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "project": "{{PROJECT_NAME}}",
+  "project": "fintech-angola",
   "phases": {
     "F0": {
       "required": ["monorepo-architecture-guardian", "turbo", "enterprise-governance", "context7-mcp"],

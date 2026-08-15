@@ -1,0 +1,29 @@
+{
+  "version": "1.0.0",
+  "description": "Configuração de auditoria para Fintech",
+  "enabled": true,
+  "logLevel": "info",
+  "output": ".opencode/audit/audit.log",
+  "format": "jsonl",
+  "capture": {
+    "toolCalls": true,
+    "skillLoads": true,
+    "skillSelectionLog": ".opencode/audit/skill-selections.log",
+    "gateEvaluations": true,
+    "decisions": true,
+    "errors": true,
+    "phaseTransitions": true,
+    "scopeChanges": true,
+    "agentDelegations": true
+  },
+  "retention": {
+    "maxAge": "365d",
+    "maxSize": "100MB",
+    "compress": true
+  },
+  "alerts": {
+    "onBlock": true,
+    "onEscalation": true,
+    "onError": true
+  }
+}

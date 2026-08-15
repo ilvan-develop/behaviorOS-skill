@@ -8,7 +8,7 @@
 
 ## Identidade do Projeto
 
-{{PROJECT_NAME}} — {{PROJECT_DESCRIPTION}}
+fintech-angola — Fintech multi-tenant angolana de processamento de pagamentos
 
 ---
 
@@ -247,7 +247,7 @@ Fase 0: Fundação (DEVE terminar primeiro)
 
 ```json
 {
-  "scopeId": "{{PROJECT_NAME}}-F2-FEATURE",
+  "scopeId": "fintech-angola-F2-FEATURE",
   "phase": "F2",
   "name": "Feature Core",
   "description": "Implementar feature principal",

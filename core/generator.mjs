@@ -62,6 +62,41 @@ export function generateGovernance(config) {
     mkdirSync(skillsDir, { recursive: true });
   }
 
+  // Create scripts directory and copy enforcement scripts
+  const scriptsDir = join(targetDir, 'scripts');
+  const guardsDir = join(scriptsDir, 'guards');
+  if (!existsSync(scriptsDir)) {
+    mkdirSync(scriptsDir, { recursive: true });
+  }
+  if (!existsSync(guardsDir)) {
+    mkdirSync(guardsDir, { recursive: true });
+  }
+
+  // Copy enforcement scripts from behaviorOS templates
+  const sourceScriptsDir = join(ROOT_DIR, 'scripts');
+  const scriptFiles = ['enforce.ps1', 'audit-logger.ps1', 'skill-tracker.ps1'];
+  const guardFiles = ['skill-guard.ps1', 'tool-guard.ps1', 'permission-guard.ps1', 'state-guard.ps1'];
+
+  for (const file of scriptFiles) {
+    const src = join(sourceScriptsDir, file);
+    const dest = join(scriptsDir, file);
+    if (existsSync(src)) {
+      let content = readFileSync(src, 'utf8');
+      content = content.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
+      writeFileSync(dest, content);
+    }
+  }
+
+  for (const file of guardFiles) {
+    const src = join(sourceScriptsDir, 'guards', file);
+    const dest = join(guardsDir, file);
+    if (existsSync(src)) {
+      let content = readFileSync(src, 'utf8');
+      content = content.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
+      writeFileSync(dest, content);
+    }
+  }
+
   // Files that go to project root (OpenCode schema)
   const rootFiles = ['opencode.json'];
 
@@ -76,6 +111,7 @@ export function generateGovernance(config) {
     'audit.json',
     'security-gates.json',
     'production-gate.json',
+    'blueprint.json',
   ];
 
   const generatedFiles = [];
@@ -123,6 +159,8 @@ export function generateGovernance(config) {
     memoryDir,
     auditDir,
     skillsDir,
+    scriptsDir,
+    guardsDir,
   };
 }
 

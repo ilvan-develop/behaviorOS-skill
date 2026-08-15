@@ -1,0 +1,68 @@
+{
+  "version": "1.0.0",
+  "project": "fintech-angola",
+  "type": "fintech",
+  "states": [
+    {
+      "id": "F0",
+      "name": "Fundação",
+      "description": "Setup do projeto, CI/CD, linting",
+      "status": "pending",
+      "isCritical": false
+    },
+    {
+      "id": "F1",
+      "name": "IAM + Tenants",
+      "description": "Autenticação e gestão de tenants",
+      "status": "pending",
+      "isCritical": false
+    },
+    {
+      "id": "F2",
+      "name": "Payments",
+      "description": "Pipeline de pagamentos com OCR",
+      "status": "pending",
+      "isCritical": true
+    },
+    {
+      "id": "F3",
+      "name": "Billing",
+      "description": "Faturação e assinaturas",
+      "status": "pending",
+      "isCritical": true
+    },
+    {
+      "id": "F4",
+      "name": "Dev Platform",
+      "description": "Plataforma de desenvolvimento",
+      "status": "pending",
+      "isCritical": false
+    },
+    {
+      "id": "F5",
+      "name": "Audit + Compliance",
+      "description": "Auditoria e conformidade",
+      "status": "pending",
+      "isCritical": true
+    },
+    {
+      "id": "F6",
+      "name": "Endurecimento",
+      "description": "Testes, segurança, performance",
+      "status": "pending",
+      "isCritical": true
+    }
+  ],
+  "transitions": [
+    { "from": "F0", "to": "F1", "condition": "all-gates-pass" },
+    { "from": "F1", "to": "F2", "condition": "all-gates-pass" },
+    { "from": "F1", "to": "F3", "condition": "all-gates-pass", "parallel": true },
+    { "from": "F2", "to": "F4", "condition": "all-gates-pass" },
+    { "from": "F3", "to": "F4", "condition": "all-gates-pass" },
+    { "from": "F2", "to": "F5", "condition": "all-gates-pass" },
+    { "from": "F3", "to": "F5", "condition": "all-gates-pass" },
+    { "from": "F4", "to": "F6", "condition": "all-gates-pass" },
+    { "from": "F5", "to": "F6", "condition": "all-gates-pass" }
+  ],
+  "currentState": "F0"
+}

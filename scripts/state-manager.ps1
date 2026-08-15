@@ -36,12 +36,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Caminhos
-$BaseDir = Split-Path -Parent $PSScriptRoot
-$GovernanceDir = Join-Path $BaseDir "governance"
-$MemoryDir = Join-Path $BaseDir "memory"
-$LogsDir = Join-Path $BaseDir "logs"
-$AuditDir = Join-Path $BaseDir "audit"
+# Caminhos (correctos: .opencode/governance, .opencode/memory, etc.)
+$ProjectRoot = Split-Path -Parent $PSScriptRoot
+$GovernanceDir = Join-Path (Join-Path $ProjectRoot ".opencode") "governance"
+$MemoryDir = Join-Path (Join-Path $ProjectRoot ".opencode") "memory"
+$LogsDir = Join-Path (Join-Path $ProjectRoot ".opencode") "logs"
+$AuditDir = Join-Path (Join-Path $ProjectRoot ".opencode") "audit"
 
 $StateMachineFile = Join-Path $GovernanceDir "state-machine.json"
 $StateFile = Join-Path $LogsDir "state.json"

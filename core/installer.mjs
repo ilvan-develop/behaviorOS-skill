@@ -188,7 +188,49 @@ export function installFromBlueprint(options) {
     };
   }
 
-  // Read blueprint to determine template
+  // Check for blueprint.json first (structured format)
+  const blueprintJsonPath = join(blueprintPath, 'blueprint.json');
+  if (existsSync(blueprintJsonPath)) {
+    try {
+      const blueprintJson = JSON.parse(readFileSync(blueprintJsonPath, 'utf8'));
+      
+      // Use blueprint.json configuration
+      const template = blueprintJson.template || 'custom';
+      const name = projectName || blueprintJson.name || 'my-project';
+      const description = projectDescription || blueprintJson.description || '';
+      const criticalPhases = blueprintJson.criticalPhases || ['F2', 'F3'];
+
+      // Install using template
+      const installResult = installFromTemplate({
+        template,
+        projectName: name,
+        projectDescription: description,
+        criticalPhases,
+        targetDir,
+      });
+
+      if (!installResult.success) {
+        return installResult;
+      }
+
+      // Copy blueprint.json to target
+      const targetBlueprintPath = join(targetDir, '.opencode', 'governance', 'blueprint.json');
+      writeFileSync(targetBlueprintPath, JSON.stringify(blueprintJson, null, 2));
+
+      return {
+        ...installResult,
+        blueprint: blueprintJson,
+        blueprintPath: blueprintJsonPath,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Failed to parse blueprint.json: ${error.message}`,
+      };
+    }
+  }
+
+  // Fallback: Read README.md to detect template
   const readmePath = join(blueprintPath, 'README.md');
   if (!existsSync(readmePath)) {
     return {

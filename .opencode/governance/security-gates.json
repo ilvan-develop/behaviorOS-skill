@@ -1,0 +1,35 @@
+{
+  "version": "1.0.0",
+  "description": "Security gates para Fintech",
+  "enabled": true,
+  "rules": [
+    {
+      "id": "no-secrets",
+      "name": "No Secrets in Code",
+      "pattern": "(password|secret|token|api_key)\\s*[=:]\\s*['\"][^'\"]+['\"]",
+      "action": "deny",
+      "severity": "critical"
+    },
+    {
+      "id": "tenant-isolation",
+      "name": "Tenant Isolation",
+      "pattern": "\\.find(Many|First|Unique)\\((?!.*organizationId)",
+      "action": "deny",
+      "severity": "critical"
+    },
+    {
+      "id": "pci-dss-card-data",
+      "name": "PCI-DSS Card Data",
+      "pattern": "(card_number|cardNumber|cvv).*[^encrypt]",
+      "action": "block",
+      "severity": "critical"
+    },
+    {
+      "id": "sql-injection",
+      "name": "SQL Injection Prevention",
+      "pattern": "query\\(.*\\$\\{.*\\}",
+      "action": "deny",
+      "severity": "high"
+    }
+  ]
+}
