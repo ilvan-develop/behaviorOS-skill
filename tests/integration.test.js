@@ -9,6 +9,7 @@ import assert from 'node:assert';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, readFileSync, mkdirSync, writeFileSync, rmSync, readdirSync } from 'fs';
+import { tmpdir } from 'os';
 import { installFromTemplate } from '../core/installer.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -17,7 +18,12 @@ const ROOT_DIR = join(__dirname, '..');
 const TEMPLATES_DIR = join(ROOT_DIR, 'templates');
 
 describe('behaviorOS Integration Tests', () => {
-  const testDir = join(__dirname, 'test-integration');
+  // Outside the repo, and unique per run. This used to be tests/test-integration, created and
+  // destroyed around every `it` — some 60 create/delete cycles a second on the same in-repo
+  // path, which intermittently threw EPERM on Windows even with maxRetries, because something
+  // (indexer, watcher, the previous rm not yet settled) still held a handle. A suite that fails
+  // at random undermines CI's authority just as much as one that cannot fail at all.
+  const testDir = join(tmpdir(), `behavioros-integration-${process.pid}`);
 
   // Setup test directory
   function setupTestDir() {
@@ -26,10 +32,15 @@ describe('behaviorOS Integration Tests', () => {
     }
   }
 
-  // Cleanup test directory
+  // Cleanup test directory. Best-effort: it lives in the OS temp dir, so a failure to remove it
+  // is not a test result. Never let teardown decide whether the assertions passed.
   function cleanupTestDir() {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+    try {
+      if (existsSync(testDir)) {
+        rmSync(testDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+      }
+    } catch {
+      // leave it to the OS
     }
   }
 

@@ -109,6 +109,9 @@ export function generateGovernance(config) {
     // Required by the installed CI workflow's quality steps — without it every consumer's
     // pipeline dies on "Cannot find module scripts/ci-run.mjs".
     'ci-run.mjs',
+    // The Governance Contract ships with every project, so the tool that verifies it must too —
+    // otherwise a project carries a declaration of authority it has no way to check.
+    'governance-doctor.mjs',
   ];
   const guardFiles = ['skill-guard.ps1', 'tool-guard.ps1', 'permission-guard.ps1', 'state-guard.ps1'];
 

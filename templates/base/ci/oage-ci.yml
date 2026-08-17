@@ -37,6 +37,11 @@ jobs:
       - name: Policy validation
         run: node scripts/validate.mjs
 
+      # Verifies the Governance Contract: every policy in this project declares who has the
+      # authority to apply it, and every declared consumer still reads it.
+      - name: Governance contract
+        run: node scripts/governance-doctor.mjs
+
       - name: Secret scan
         run: node scripts/lint.mjs --secrets-only
 

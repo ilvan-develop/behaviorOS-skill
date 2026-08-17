@@ -9,6 +9,7 @@ import assert from 'node:assert';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, readFileSync, mkdirSync, writeFileSync, rmSync, readdirSync } from 'fs';
+import { tmpdir } from 'os';
 import { validateGovernance, validateConfig } from '../core/validator.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -17,7 +18,7 @@ const ROOT_DIR = join(__dirname, '..');
 const TEMPLATES_DIR = join(ROOT_DIR, 'templates');
 
 describe('behaviorOS Configuration Validator', () => {
-  const testDir = join(__dirname, 'test-output');
+  const testDir = join(tmpdir(), `oage-validate-output-${process.pid}`);
   const governanceDir = join(testDir, '.opencode', 'governance');
 
   // Setup test directory

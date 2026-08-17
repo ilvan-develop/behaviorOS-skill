@@ -14,6 +14,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, readFileSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import { spawnSync } from 'child_process';
+import { tmpdir } from 'os';
 import { installFromTemplate } from '../core/installer.mjs';
 import { matchesAny, matchesCommand } from '../.opencode/plugins/lib/oage-lib.js';
 import { pathToFileURL } from 'url';
@@ -101,7 +102,7 @@ describe('Command matcher used by dependency-gate.json', () => {
 });
 
 describe('Install-time propagation', () => {
-  const testDir = join(__dirname, 'test-oage-install');
+  const testDir = join(tmpdir(), `oage-install-${process.pid}`);
 
   function cleanup() {
     if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
@@ -146,7 +147,7 @@ describe('Real CLI entrypoints (scripts/install.mjs, scripts/init.mjs)', () => {
   // additions (plugins, shared governance, CI, blueprint README). This suite spawns the real
   // CLI as a user would run it, so drift between "the library" and "what ships" can't recur
   // silently.
-  const cliTestDir = join(__dirname, 'test-cli-install');
+  const cliTestDir = join(tmpdir(), `oage-cli-install-${process.pid}`);
 
   function cleanup() {
     if (existsSync(cliTestDir)) rmSync(cliTestDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
@@ -210,7 +211,7 @@ describe('Real CLI entrypoints (scripts/install.mjs, scripts/init.mjs)', () => {
 });
 
 describe('Evidence-based completion gate (scripts/evidence-check.mjs)', () => {
-  const testDir = join(__dirname, 'test-evidence-gate');
+  const testDir = join(tmpdir(), `oage-evidence-gate-${process.pid}`);
 
   function cleanup() {
     if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
@@ -266,7 +267,7 @@ describe('Evidence-based completion gate (scripts/evidence-check.mjs)', () => {
 });
 
 describe('Dependency justification (scripts/audit-event.mjs)', () => {
-  const testDir = join(__dirname, 'test-audit-event');
+  const testDir = join(tmpdir(), `oage-audit-event-${process.pid}`);
 
   function cleanup() {
     if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
@@ -296,7 +297,7 @@ describe('Dependency justification (scripts/audit-event.mjs)', () => {
 // Regression tests for real bugs found by dogfooding a full fintech install end to end
 // (see conversation: "executa um teste fintech enterprise ... aplica de forma real").
 describe('Dogfood-found regressions', () => {
-  const testDir = join(__dirname, 'test-dogfood-install');
+  const testDir = join(tmpdir(), `oage-dogfood-${process.pid}`);
 
   function cleanup() {
     if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
@@ -515,7 +516,7 @@ describe('Secret scan coverage (the scanner must not exempt the files most likel
   it('detects a provider-shaped key inside a test file', () => {
     // Proves the coverage claim above end to end rather than by reading the source: plant a
     // throwaway *.test.js carrying a secret and confirm the scan fails on it.
-    const scanDir = join(__dirname, 'test-secret-scan');
+    const scanDir = join(tmpdir(), `oage-secret-scan-${process.pid}`);
     const wipe = () => {
       if (existsSync(scanDir)) rmSync(scanDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
     };

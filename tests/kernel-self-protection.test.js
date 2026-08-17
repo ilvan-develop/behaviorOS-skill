@@ -107,6 +107,8 @@ describe('KERNEL_SELF_PROTECTION — path representation must not change the ver
     ['permissions matrix', '.opencode/governance/permissions-matrix.json'],
     ['state machine', '.opencode/governance/state-machine.json'],
     ['protected-resources policy', '.opencode/governance/protected-resources.json'],
+    // The contract declares who may enforce what; rewriting it would rewrite the authority map.
+    ['the governance contract', '.opencode/governance/governance-contract.json'],
   ];
 
   for (const [what, relPath] of PROTECTED) {

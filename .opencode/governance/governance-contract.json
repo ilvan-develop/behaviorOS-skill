@@ -1,0 +1,319 @@
+{
+  "version": "1.0.0",
+  "description": "Governance Contract (OAGE P1.0). Declares, for every policy file, WHO has the authority to apply it and HOW that authority is proven. A policy is not enforcement until the chain Policy -> Consumer -> Enforcement -> Adversarial Test -> CI exists; this file is where the chain is declared, and scripts/governance-doctor.mjs is what confronts the declaration with reality.",
+  "enabled": true,
+
+  "authorities": {
+    "kernel": "Runtime enforcement inside .opencode/plugins. Blocks the tool call itself, before it happens.",
+    "phase": "Enforced at a phase boundary (completion/review), by scripts that take --phase.",
+    "handoff": "Enforced when work passes between agents, where agent identity actually exists.",
+    "ci": "Enforced by CI, independently of anything the agent claims.",
+    "declarative": "Not enforced. Configuration or documentation consumed by tooling."
+  },
+
+  "enforcementModes": {
+    "runtime": "Read by a plugin on tool.execute.before / .after.",
+    "phase": "Read by evidence-check / reviewer-check / state-manager at a phase transition.",
+    "ci": "Read by the CI workflow.",
+    "declarative": "Read only by generators, installers or validators."
+  },
+
+  "failureModes": {
+    "fail-closed": "Violation blocks the operation.",
+    "escalate": "Violation warns and escalates to human review rather than blocking outright.",
+    "none": "Nothing to fail — declarative only."
+  },
+
+  "statuses": {
+    "enforced": "A real consumer applies this policy. The doctor verifies the consumer exists and references it.",
+    "unenforced": "Declared intent with no consumer yet. A tracked gap: the doctor reports UNENFORCED_POLICY."
+  },
+
+  "policies": {
+    "protected-resources.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "fail-closed",
+      "status": "enforced",
+      "consumers": [".opencode/plugins/oage-enforce.js", "scripts/lint.mjs"],
+      "adversarialTests": ["tests/kernel-self-protection.test.js"],
+      "ci": [".github/workflows/oage-ci.yml"],
+      "note": "KERNEL_SELF_PROTECTION. The one policy that guards the kernel against itself."
+    },
+    "anti-patterns.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "fail-closed",
+      "status": "enforced",
+      "consumers": [".opencode/plugins/oage-enforce.js", "scripts/lint.mjs"],
+      "adversarialTests": ["tests/oage-gates.test.js"],
+      "ci": [".github/workflows/oage-ci.yml"]
+    },
+    "risk-engine.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "fail-closed",
+      "status": "enforced",
+      "consumers": [".opencode/plugins/lib/risk-engine.js"],
+      "adversarialTests": ["tests/oage-gates.test.js"],
+      "ci": []
+    },
+    "behavior-contract.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "fail-closed",
+      "status": "enforced",
+      "consumers": [".opencode/plugins/lib/risk-engine.js"],
+      "adversarialTests": ["tests/oage-gates.test.js"],
+      "ci": [],
+      "note": "Supplies riskEscalation, which is why a critical phase raises HIGH to CRITICAL."
+    },
+    "policy-resolver.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "fail-closed",
+      "status": "enforced",
+      "consumers": [".opencode/plugins/lib/policy-resolver.js"],
+      "adversarialTests": ["tests/oage-gates.test.js"],
+      "ci": [],
+      "note": "The real source of the context7/truth/skill/knowledge action policies — not context7-gate.json or skill-gate.json."
+    },
+    "execution-protocol.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "escalate",
+      "status": "enforced",
+      "consumers": [".opencode/plugins/lib/protocol-engine.js"],
+      "adversarialTests": [],
+      "ci": []
+    },
+    "knowledge-hierarchy.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "escalate",
+      "status": "enforced",
+      "consumers": [".opencode/plugins/lib/protocol-engine.js"],
+      "adversarialTests": [],
+      "ci": []
+    },
+    "loop-detector.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "escalate",
+      "status": "enforced",
+      "consumers": [".opencode/plugins/oage-enforce.js"],
+      "adversarialTests": [],
+      "ci": [],
+      "note": "failureMode is 'escalate' by intent, but the current implementation blocks outright on the 4th identical attempt — the most-fired gate in the audited log, and the cause of a real bypass. P1.1 aligns behaviour with this declaration."
+    },
+    "dependency-gate.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "fail-closed",
+      "status": "enforced",
+      "consumers": [".opencode/plugins/oage-enforce.js"],
+      "adversarialTests": ["tests/oage-gates.test.js"],
+      "ci": []
+    },
+    "truth-gate.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "fail-closed",
+      "status": "enforced",
+      "consumers": [".opencode/plugins/oage-enforce.js"],
+      "adversarialTests": ["tests/oage-gates.test.js"],
+      "ci": []
+    },
+    "version-pinning-gate.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "fail-closed",
+      "status": "enforced",
+      "consumers": [".opencode/plugins/oage-enforce.js"],
+      "adversarialTests": [],
+      "ci": []
+    },
+    "version-registry.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "fail-closed",
+      "status": "enforced",
+      "consumers": [".opencode/plugins/oage-enforce.js"],
+      "adversarialTests": [],
+      "ci": []
+    },
+    "tool-gate.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "fail-closed",
+      "status": "enforced",
+      "consumers": [".opencode/plugins/oage-enforce.js", "scripts/guards/tool-guard.ps1"],
+      "adversarialTests": [],
+      "ci": []
+    },
+    "state-machine.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "fail-closed",
+      "status": "enforced",
+      "consumers": [".opencode/plugins/lib/risk-engine.js", "scripts/state-manager.ps1", "scripts/evidence-check.mjs"],
+      "adversarialTests": ["tests/oage-gates.test.js"],
+      "ci": [],
+      "note": "Read fresh on every call, not cached — /agent_loop rewrites currentState mid-session."
+    },
+    "audit.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "fail-closed",
+      "status": "unenforced",
+      "consumers": [],
+      "adversarialTests": [],
+      "ci": [],
+      "note": "Nothing reads this config. The plugins write .opencode/audit/audit.jsonl through oage-lib with the path hardcoded, so `output` (which says audit.log) is ignored and `retention` (maxAge/maxSize/compress) never runs — the log grows without bound. First declared as enforced with oage-audit.js as consumer; the doctor rejected it, because the apparent match was the substring `audit.json` inside `audit.jsonl`. P1.2 gives it a real consumer."
+    },
+
+    "definition-of-done.json": {
+      "authority": "phase",
+      "enforcementMode": "phase",
+      "failureMode": "fail-closed",
+      "status": "enforced",
+      "consumers": ["scripts/evidence-check.mjs", "scripts/state-manager.ps1"],
+      "adversarialTests": ["tests/oage-gates.test.js"],
+      "ci": [],
+      "note": "Not in CI yet: evidence-check needs --phase, so it cannot run on every push. P1.4 derives the phase from state-machine.json."
+    },
+    "reviewer-gate.json": {
+      "authority": "phase",
+      "enforcementMode": "phase",
+      "failureMode": "fail-closed",
+      "status": "enforced",
+      "consumers": ["scripts/reviewer-check.mjs", "scripts/state-manager.ps1"],
+      "adversarialTests": ["tests/oage-gates.test.js"],
+      "ci": [],
+      "note": "Separation of duties. Cannot be a kernel policy: tool.execute.before carries no agent identity, so 'a different agent than the implementer' is only decidable where attribution is explicit."
+    },
+    "handoff-schema.json": {
+      "authority": "handoff",
+      "enforcementMode": "phase",
+      "failureMode": "fail-closed",
+      "status": "enforced",
+      "consumers": ["scripts/handoff.mjs"],
+      "adversarialTests": ["tests/oage-gates.test.js"],
+      "ci": []
+    },
+    "permissions-matrix.json": {
+      "authority": "handoff",
+      "enforcementMode": "phase",
+      "failureMode": "fail-closed",
+      "status": "enforced",
+      "consumers": ["scripts/guards/permission-guard.ps1"],
+      "adversarialTests": [],
+      "ci": [],
+      "note": "Phase-scoped allowedAgents. Deliberately NOT a kernel policy — the runtime hook has no agent identity, so pushing it into tool.execute.before would create a false sense of enforcement. Its only consumer today is a PowerShell guard, which does not run on non-Windows or in CI: P1.3 gives it real authority at handoff/CI."
+    },
+    "skill-gate.json": {
+      "authority": "phase",
+      "enforcementMode": "phase",
+      "failureMode": "escalate",
+      "status": "enforced",
+      "consumers": ["scripts/guards/skill-guard.ps1", "scripts/run-pipeline.ps1"],
+      "adversarialTests": ["tests/oage-gates.test.js"],
+      "ci": [],
+      "note": "The RUNTIME skill gate does not read this file — it resolves from policy-resolver.json plus skill-engine's technology map. This file governs the phase-level pipeline only."
+    },
+
+    "ci-gate.json": {
+      "authority": "ci",
+      "enforcementMode": "ci",
+      "failureMode": "fail-closed",
+      "status": "unenforced",
+      "consumers": [],
+      "adversarialTests": ["tests/ci-fail-closed.test.js"],
+      "ci": [],
+      "note": "The CI workflow is fail-closed and has a final gate, but it is hand-written YAML — nothing reads ci-gate.json to derive or verify it. Either the workflow starts consuming it, or it becomes declarative."
+    },
+    "security-gates.json": {
+      "authority": "ci",
+      "enforcementMode": "ci",
+      "failureMode": "fail-closed",
+      "status": "unenforced",
+      "consumers": [],
+      "adversarialTests": [],
+      "ci": [],
+      "note": "Validated as JSON and shipped to projects, but no consumer applies it."
+    },
+    "production-gate.json": {
+      "authority": "ci",
+      "enforcementMode": "ci",
+      "failureMode": "fail-closed",
+      "status": "unenforced",
+      "consumers": [],
+      "adversarialTests": [],
+      "ci": [],
+      "note": "Validated as JSON and shipped to projects, but no consumer applies it."
+    },
+    "context7-gate.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "fail-closed",
+      "status": "unenforced",
+      "consumers": [],
+      "adversarialTests": [],
+      "ci": [],
+      "note": "The runtime context7 requirement comes from policy-resolver.json's actions.context7, NOT from this file. It looks like the source of that gate and is not."
+    },
+    "skill-gate-auto.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "escalate",
+      "status": "unenforced",
+      "consumers": [],
+      "adversarialTests": [],
+      "ci": [],
+      "note": "Automatic skill resolution is hardcoded in .opencode/plugins/lib/skill-engine.js instead of being driven by this file."
+    },
+
+    "mcp-registry.json": {
+      "authority": "declarative",
+      "enforcementMode": "declarative",
+      "failureMode": "none",
+      "status": "enforced",
+      "consumers": ["scripts/validate.mjs"],
+      "adversarialTests": [],
+      "ci": [".github/workflows/oage-ci.yml"],
+      "note": "A registry of permitted MCP servers. Shape is validated; nothing gates MCP usage on it."
+    },
+    "memory.json": {
+      "authority": "declarative",
+      "enforcementMode": "declarative",
+      "failureMode": "none",
+      "status": "enforced",
+      "consumers": ["core/generator.mjs", "scripts/validate.mjs"],
+      "adversarialTests": [],
+      "ci": [],
+      "note": "Shape only: generated into projects and validated. The memory FILES under .opencode/memory/ are what the scripts actually read."
+    },
+    "blueprint.json": {
+      "authority": "declarative",
+      "enforcementMode": "declarative",
+      "failureMode": "none",
+      "status": "enforced",
+      "consumers": ["core/installer.mjs", "scripts/generate-blueprints.mjs"],
+      "adversarialTests": [],
+      "ci": [],
+      "optional": true,
+      "note": "Only present in projects installed via --blueprint."
+    },
+    "opencode.json": {
+      "authority": "declarative",
+      "enforcementMode": "declarative",
+      "failureMode": "none",
+      "status": "enforced",
+      "consumers": ["core/generator.mjs", "scripts/validate.mjs"],
+      "adversarialTests": [],
+      "ci": [],
+      "optional": true,
+      "note": "The OpenCode project config, not a governance policy. Lives at the project root in installed projects."
+    }
+  }
+}

@@ -23,6 +23,12 @@ jobs:
       - name: Policy validation
         run: node scripts/validate.mjs
 
+      # validate.mjs only proves a policy is well-formed. The doctor proves someone applies it:
+      # it blocks on a policy declared "enforced" that nothing reads, on a declared consumer
+      # that no longer references its policy, and on a runtime claim no plugin backs.
+      - name: Governance contract
+        run: node scripts/governance-doctor.mjs
+
       - name: Secret scan
         run: node scripts/lint.mjs --secrets-only
 
