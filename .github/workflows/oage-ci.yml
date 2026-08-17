@@ -52,6 +52,12 @@ jobs:
       - name: Kernel self-protection must hold
         run: node --test "tests/kernel-self-protection.test.js"
 
+      # Loop governance, tested from both sides. Over-blocking legitimate work is itself the
+      # vulnerability — it is what drove a model to a heredoc bypass instead of escalating —
+      # so the false-positive half of this file is as load-bearing as the attack half.
+      - name: Loop governance ladder must hold
+        run: node --test "tests/loop-governance.test.js"
+
       - name: Full suite
         run: npm test
 

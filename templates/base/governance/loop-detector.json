@@ -1,14 +1,85 @@
 {
-  "version": "1.0.0",
-  "description": "Configuração do Recovery Engine / detector de loops (OAGE §27-28).",
+  "version": "2.0.0",
+  "schemaVersion": 2,
+  "description": "Loop Governance (OAGE §27-28, P1.1). Pontua risco comportamental em vez de contar chamadas: a mesma acção repetida só pesa consoante a sua natureza, o risco do alvo e se muda alguma coisa. Substitui o contador maxIdenticalAttempts, que tratava quatro leituras como quatro tentativas de escrita.",
   "enabled": true,
-  "maxIdenticalAttempts": 3,
+
   "windowMinutes": 15,
-  "signature": ["tool", "target", "commandOrContent"],
-  "onLoopDetected": {
-    "action": "block",
-    "escalate": true,
-    "message": "Loop detectado: a mesma ação (ferramenta+alvo+conteúdo) foi repetida {count} vezes em {windowMinutes} minutos. Execução bloqueada — escalar para revisão humana em vez de tentar novamente."
+
+  "signature": [
+    "schemaVersion",
+    "projectId",
+    "sessionId",
+    "agent",
+    "phase",
+    "actionClass",
+    "canonicalTarget",
+    "mutationFingerprint"
+  ],
+  "signatureNote": "Composto pelo loop-engine a partir desta lista — o campo deixou de ser decorativo. Antes o codigo fabricava a string a mao (`tool:target:command`) e esta lista nao tinha consumidor nenhum. `canonicalTarget` colapsa as grafias do caminho, sem o que o detector era evitavel escrevendo o mesmo alvo em absoluto em vez de relativo. `phase` isola o contador por fase: a mesma operacao pode ser legitima numa fase e suspeita noutra. `mutationFingerprint` distingue iterar (conteudo diferente de cada vez) de repetir (conteudo identico).",
+
+  "actionClasses": {
+    "read": "READ",
+    "test": "EXECUTE",
+    "lint": "EXECUTE",
+    "typecheck": "EXECUTE",
+    "build": "EXECUTE",
+    "bash-command": "EXECUTE",
+    "install-dependency": "INSTALL",
+    "uninstall-dependency": "INSTALL",
+    "git-commit": "GIT",
+    "unknown": "EXECUTE",
+    "_default": "WRITE"
   },
+  "actionClassesNote": "Mapeia a operacao que classifyOperation ja produz para uma classe de acao. `_default` cobre todas as operacoes edit-* (edit-service, edit-schema, ...). DELETE, GOVERNANCE_MUTATION e SECURITY_BYPASS sao detectadas pelo loop-engine a partir do alvo e do comando, nao desta tabela.",
+
+  "weights": {
+    "READ": 0,
+    "SEARCH": 0,
+    "WRITE": 2,
+    "EDIT": 2,
+    "EXECUTE": 3,
+    "INSTALL": 3,
+    "GIT": 3,
+    "NETWORK": 3,
+    "DELETE": 4,
+    "GOVERNANCE_MUTATION": 5,
+    "SECURITY_BYPASS": 10
+  },
+  "weightsNote": "READ e SEARCH a zero: repetir uma leitura nunca acumula. Passa a ser uma regra declarada e testada, e nao um acidente do fluxo de controlo do enforcer.",
+
+  "riskMultipliers": {
+    "LOW": 1,
+    "MEDIUM": 1,
+    "HIGH": 1.5,
+    "CRITICAL": 2
+  },
+  "riskMultipliersNote": "Vem do assessRisk que o risk-engine ja calcula para o alvo. Repetir uma escrita a um ficheiro de pagamentos pesa mais que ao README, sem duplicar a tabela de risco. Multiplica: peso 0 continua 0 seja qual for o risco.",
+
+  "noopMultiplier": 2,
+  "noopMultiplierNote": "Repetir uma edicao que nao muda nada e o sinal de loop mais forte que existe — o agente esta preso, nao a iterar.",
+
+  "thresholds": {
+    "warn": 4,
+    "escalate": 8,
+    "block": 14
+  },
+  "thresholdsNote": "Uma escrita repetida identica (peso 2) avisa a 2a tentativa, escala a 4a e so bloqueia depois — contra o comportamento anterior, que bloqueava a 4a sem nunca ter avisado. Um edit no-op (2x2=4) avisa a 1a e escala a 2a. Uma mutacao de governance (5x2=10) escala a 1a.",
+
+  "onEscalate": {
+    "armSignature": true,
+    "auditEvent": "escalation_required"
+  },
+  "onEscalateNote": "ESCALATE deixa passar uma vez e arma a assinatura: a ocorrencia seguinte bloqueia citando o escalonamento. Sem isto, ESCALATE seria apenas um BLOCK com limiar mais alto e um passo invisivel pelo meio.",
+
+  "maxSignatures": 200,
+  "maxSignaturesNote": "As chaves nunca eram removidas — so os timestamps dentro de cada uma. O ficheiro real chegou a 269 assinaturas e 54 KB, incluindo 232 de leituras de uma arquitectura anterior.",
+
+  "messages": {
+    "warn": "Repeticao detectada: {actionClass} sobre {target} ({count}x nesta fase, score {score}). Se a accao esta a ser rejeitada, mude de abordagem em vez de repetir.",
+    "escalate": "Escalonamento: {actionClass} sobre {target} repetiu {count}x sem efeito (score {score}). A proxima repeticao identica sera bloqueada — pare e escale para revisao humana.",
+    "block": "Loop bloqueado: {actionClass} sobre {target}, {count}x em {windowMinutes} minutos (score {score}). Ja tinha sido escalado. Escale para revisao humana em vez de tentar novamente."
+  },
+
   "stateFile": ".opencode/audit/loop-state.json"
 }

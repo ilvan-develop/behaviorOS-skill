@@ -27,8 +27,6 @@ import {
   matchesCommand,
   appendAudit,
   readAuditEvents,
-  readLoopState,
-  writeLoopState,
   extractTarget,
   extractCommand,
   extractContent,
@@ -46,6 +44,21 @@ import {
   checkGroundingEvidence,
 } from './lib/oage-lib.js';
 import { detectTechnologies, resolveSkills } from './lib/skill-engine.js';
+import { evaluateRepetition } from './lib/loop-engine.js';
+
+/**
+ * Loop verdicts decided in `tool.execute.before`, waiting for `tool.execute.after` to hand them
+ * to the agent. Keyed by callID.
+ *
+ * The before hook can only throw or stay silent — it has no way to say "this worked, but you
+ * are repeating yourself". The after hook, however, receives `output.output`: the text the
+ * agent reads back. Appending there is what makes WARN and ESCALATE real steps rather than
+ * audit entries nobody acts on, which matters because the whole point of the ladder is to warn
+ * before blocking. Entries are deleted on consumption; a call that never reaches the after hook
+ * (because some gate threw) leaves at most one stale entry, bounded below.
+ */
+const loopVerdicts = new Map();
+const MAX_PENDING_VERDICTS = 100;
 
 /**
  * Check if a tool is read-only (never blocked by Behavior Resolution, beyond the
@@ -84,8 +97,11 @@ function fileExists(root, target) {
  * Prisma 6 (wrong major; the project pins Prisma 7) straight through.
  *
  * Throws to block. Returns normally (after logging `behavior_resolved`) to allow.
+ *
+ * Returns a loop verdict (or null) so the caller can surface WARN/ESCALATE to the agent via
+ * the after hook — see the loopVerdicts map below.
  */
-function evaluateFileWrite(root, { tool, target, content, agent, sessionID, phase }) {
+function evaluateFileWrite(root, { tool, target, content, agent, sessionID, phase, args }) {
   const operation = classifyOperation('write', { filePath: target, content });
   const risk = assessRisk(root, target, operation, null);
   const skillsMap = readSkillsLoaded(root, { sessionID });
@@ -276,6 +292,47 @@ function evaluateFileWrite(root, { tool, target, content, agent, sessionID, phas
     event: 'behavior_resolved', gate: 'behavior-resolution',
     tool, target, agent, sessionID, phase, risk: risk.risk, riskEvidence: risk.evidence, operation,
   });
+
+  // Loop governance runs LAST, so a call the other gates would reject anyway never accumulates
+  // repetition score. This is the path that used to escape it entirely: write/edit return from
+  // the before hook right here, never reaching the old PHASE 4 block.
+  return applyLoopVerdict(root, { tool, target, args: args || { filePath: target, content }, agent, sessionID, phase });
+}
+
+/**
+ * Score the repetition and act on the verdict: throw on BLOCK, otherwise return the verdict so
+ * the caller can hand WARN/ESCALATE to the agent through the after hook.
+ */
+function applyLoopVerdict(root, ctx) {
+  const verdict = evaluateRepetition(root, ctx);
+  if (!verdict || verdict.level === 'NORMAL') return null;
+
+  const cfg = loadGovernanceJSON(root, 'loop-detector.json');
+  const auditEvent = verdict.level === 'BLOCK'
+    ? 'loop_detected'
+    : verdict.level === 'ESCALATE'
+      ? (cfg?.onEscalate?.auditEvent || 'escalation_required')
+      : 'loop_warning';
+
+  appendAudit(root, {
+    event: auditEvent, gate: 'loop-detector',
+    tool: ctx.tool, target: verdict.canonicalTarget, command: ctx.command?.substring(0, 200),
+    agent: ctx.agent, sessionID: ctx.sessionID, phase: ctx.phase,
+    level: verdict.level, score: verdict.score, count: verdict.count,
+    actionClass: verdict.actionClass, noop: verdict.noop,
+  });
+
+  if (verdict.level === 'BLOCK') throw new Error(`[OAGE] ${verdict.message}`);
+  return verdict;
+}
+
+/** Park a verdict for the after hook, evicting the oldest if a run leaves entries behind. */
+function rememberVerdict(callID, verdict) {
+  if (!callID) return;
+  if (loopVerdicts.size >= MAX_PENDING_VERDICTS) {
+    loopVerdicts.delete(loopVerdicts.keys().next().value);
+  }
+  loopVerdicts.set(callID, verdict);
 }
 
 export const OageEnforce = async (ctx) => {
@@ -330,7 +387,8 @@ export const OageEnforce = async (ctx) => {
       // PHASE 2: write/edit — run the full file-write pipeline directly.
       // ═══════════════════════════════════════════════════════════════════
       if (tool === 'write' || tool === 'edit') {
-        evaluateFileWrite(root, { tool, target, content, agent, sessionID, phase });
+        const verdict = evaluateFileWrite(root, { tool, target, content, agent, sessionID, phase, args });
+        if (verdict) rememberVerdict(input.callID, verdict);
         return;
       }
 
@@ -407,37 +465,13 @@ export const OageEnforce = async (ctx) => {
       }
 
       // ═══════════════════════════════════════════════════════════════════
-      // PHASE 4: Loop detection — applies to every tool reaching this point (bash,
-      // context7 calls, etc.). Scoped by sessionID: a repeated identical action within
-      // the SAME session is a runaway-repetition signal; across unrelated sessions it
-      // isn't — a fresh session (e.g. after switching model) retrying the very same first
-      // legitimate write it has never attempted before must not inherit a block caused by
-      // a previous, unrelated session's retries. (Previously global: a live test showed a
-      // brand-new session get blocked on its very first write attempt because an earlier,
-      // separate session had already retried that same write 4 times.)
+      // PHASE 4: Loop governance — scores behavioural risk instead of counting calls.
+      // See lib/loop-engine.js. Still session-scoped (a fresh session must not inherit
+      // another session's retries), and now also phase- and project-scoped.
       // ═══════════════════════════════════════════════════════════════════
-      const loopCfg = loadGovernanceJSON(root, 'loop-detector.json');
-      if (loopCfg?.enabled && (target || command)) {
-        const signature = `${sessionID || 'nosession'}:${tool}:${target || ''}:${command || ''}`;
-        const state = readLoopState(root);
-        const now = Date.now();
-        const windowMs = loopCfg.windowMinutes * 60 * 1000;
-        const record = state.signatures[signature] || { timestamps: [] };
-        record.timestamps = record.timestamps.filter((t) => now - t < windowMs);
-        record.timestamps.push(now);
-        state.signatures[signature] = record;
-        writeLoopState(root, state);
-
-        if (record.timestamps.length > loopCfg.maxIdenticalAttempts) {
-          appendAudit(root, {
-            event: 'loop_detected', gate: 'loop-detector',
-            tool, target, command, agent, sessionID, phase, count: record.timestamps.length,
-          });
-          const msg = loopCfg.onLoopDetected.message
-            .replace('{count}', String(record.timestamps.length))
-            .replace('{windowMinutes}', String(loopCfg.windowMinutes));
-          throw new Error(`[OAGE] ${msg}`);
-        }
+      if (target || command) {
+        const verdict = applyLoopVerdict(root, { tool, target, command, args, agent, sessionID, phase });
+        if (verdict) rememberVerdict(input.callID, verdict);
       }
 
       // ═══════════════════════════════════════════════════════════════════
@@ -455,6 +489,19 @@ export const OageEnforce = async (ctx) => {
           risk: risk.risk, riskEvidence: risk.evidence, operation,
         });
       }
+    },
+
+    // Delivers WARN/ESCALATE to the agent. `output.output` is the text the model reads back
+    // from the tool, so this is the only channel the plugin API gives for "allowed, but stop
+    // repeating" — without it the ladder would exist only in the audit trail, and an agent
+    // would walk from NORMAL to BLOCK having been told nothing.
+    'tool.execute.after': async (input, output) => {
+      const verdict = loopVerdicts.get(input.callID);
+      if (!verdict) return;
+      loopVerdicts.delete(input.callID);
+
+      if (typeof output?.output !== 'string') return;
+      output.output = `${output.output}\n\n[OAGE ${verdict.level}] ${verdict.message}`;
     },
   };
 };

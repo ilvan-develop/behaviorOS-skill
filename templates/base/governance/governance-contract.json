@@ -101,10 +101,10 @@
       "enforcementMode": "runtime",
       "failureMode": "escalate",
       "status": "enforced",
-      "consumers": [".opencode/plugins/oage-enforce.js"],
-      "adversarialTests": [],
-      "ci": [],
-      "note": "failureMode is 'escalate' by intent, but the current implementation blocks outright on the 4th identical attempt — the most-fired gate in the audited log, and the cause of a real bypass. P1.1 aligns behaviour with this declaration."
+      "consumers": [".opencode/plugins/oage-enforce.js", ".opencode/plugins/lib/loop-engine.js"],
+      "adversarialTests": ["tests/loop-governance.test.js"],
+      "ci": [".github/workflows/oage-ci.yml"],
+      "note": "P1.1: scores behavioural risk instead of counting calls, and the WARN -> ESCALATE -> BLOCK ladder now matches this failureMode. Previously it blocked outright on the 4th identical attempt, was reachable only from bash (write/edit returned from the before hook first), and keyed on the raw target so re-spelling a path evaded it."
     },
     "dependency-gate.json": {
       "authority": "kernel",
