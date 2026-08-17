@@ -7,22 +7,32 @@
 
 behaviorOS is a governance system for autonomous software development. It enables AI agents to work independently while maintaining control through configurable gates, permissions, and audit trails.
 
+## The enforcement invariant
+
+> A policy file is not an enforcement mechanism. A policy is enforced only when its declared
+> authority, consumer, failure mode and adversarial test are all verifiably connected.
+
+Every policy declares who may apply it in [`governance-contract.json`](templates/base/governance/governance-contract.json), and `npm run doctor` checks that declaration against the code — blocking on a policy declared "enforced" that nothing reads, on a consumer that no longer references its policy, and on a runtime claim no plugin backs.
+
+This exists because the opposite was true and invisible: the suite was green, `validate` reported 24/24, and the README promised guarantees that matched no code path. Each claim below therefore names **where** it is enforced, because "runtime", "at a phase boundary" and "in CI" are different promises.
+
 ## Features
 
 - **Three-level autonomy model** — L1 (Routine), L2 (Auto-Expand), L3 (Escalate)
 - **10 specialized agents** — orchestrator, architect, planner, backend, frontend, database, qa, security, devops, compliance
-- **Skill gates** — Validates skills before task execution
-- **Tool gates** — Validates tools before usage
-- **Permission matrix** — Defines what agents can do
-- **State machine** — Manages orchestrator lifecycle
+- **Skill gates** — Validates skills before task execution. Enforced at runtime from `policy-resolver.json`; `skill-gate.json` governs the phase-level pipeline
+- **Tool gates** — Validates tools before usage (runtime)
+- **Permission matrix** — Declares which agents may act in which phase. Enforced **at handoff / phase boundaries**, not at runtime: `tool.execute.before` carries no agent identity, so a runtime check would be a false sense of enforcement
+- **State machine** — Manages orchestrator lifecycle (runtime; read fresh on every call, never cached)
 - **Memory** — Maintains context between phases
 - **Audit trail** — Records all actions automatically via runtime plugins, not just on request
 - **10 runtime-enforced gates** — `.opencode/plugins/oage-enforce.js` blocks on every `tool.execute.before` call: protected resources, anti-patterns, dependency gate, truth gate, loop detection, skill tracking, context7 check, quality gates, agent loop flow, version pinning
 - **Automatic audit trail** — `.opencode/plugins/oage-audit.js` logs every tool call AND detects gate-specific events (context7 queries, skill loads, version checks, quality checks)
 - **Anti-pattern library** — 29 regex + manual anti-patterns across architecture/database/api/security/testing/git/monorepo/typescript/react/nextjs/ci-cd/ux/ai-agents
 - **Truth gate** — critical files (schemas, migrations, payments, auth) require a declared confidence >= threshold before write
-- **Independent reviewer gate** — critical phases cannot be marked complete without review by a different agent than the implementer
-- **Evidence-based completion** — phases require a recorded evidence file (tests, build, lint results) before "completed"
+- **Independent reviewer gate** — critical phases cannot be marked complete without review by a different agent than the implementer (phase boundary, via `scripts/reviewer-check.mjs --phase`)
+- **Evidence-based completion** — phases require a recorded evidence file (tests, build, lint results) before "completed" (phase boundary, via `scripts/evidence-check.mjs --phase`)
+- **Governance contract** — every policy declares its authority, consumer, failure mode and adversarial test; `npm run doctor` blocks when a declaration and the code disagree
 - **Structured handoffs** — `scripts/handoff.mjs` generates FROM/TO/CONTEXT/NEXT_ACTION docs between agents
 - **CI as final authority** — installable `.github/workflows/oage-ci.yml` re-validates policy, secrets, and quality gates independent of what an agent claims
 - **Compliance** — Supports regulatory requirements (AGT, SAF-T, LGPD, PCI-DSS, HIPAA)

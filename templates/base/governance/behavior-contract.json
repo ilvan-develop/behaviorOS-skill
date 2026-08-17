@@ -2,6 +2,15 @@
   "version": "1.0.0",
   "description": "BehaviorOS Behavior Contract — define o contrato de comportamento do agente por operação e risk level.",
 
+  "enforcementInvariant": {
+    "statement": "Uma política não é enforcement por existir. Uma política só é considerada aplicada quando existem autoridade declarada, consumidor verificável, comportamento de falha e teste adversarial que provem a cadeia.",
+    "statementEn": "A policy file is not an enforcement mechanism. A policy is enforced only when its declared authority, consumer, failure mode and adversarial test are all verifiably connected.",
+    "chain": ["policy", "authority", "consumer", "enforcement", "adversarialTest", "ci"],
+    "verifiedBy": "scripts/governance-doctor.mjs",
+    "declaredIn": ".opencode/governance/governance-contract.json",
+    "rationale": "Three consecutive audits found the same failure shape: a policy that was well-formed, validated green, documented in the README, and applied by nothing. `validate.mjs` reported 24/24 while 11 of 29 policies had no runtime consumer, and the kernel's own self-protection matched no path in practice. Existence is not authority."
+  },
+
   "contracts": {
     "read": {
       "risk": "LOW",

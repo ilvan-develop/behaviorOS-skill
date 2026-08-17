@@ -21,7 +21,7 @@ import { fileURLToPath } from 'url';
 import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync, cpSync } from 'fs';
 import { spawnSync } from 'child_process';
 import { tmpdir } from 'os';
-import { diagnose, detectMode, referencesPolicy } from '../scripts/governance-doctor.mjs';
+import { diagnose, detectMode, referencesPolicy, findDuplicatePolicies } from '../scripts/governance-doctor.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -434,5 +434,93 @@ describe('The doctor has a consumer (otherwise the contract is itself an unenfor
         'the authority map must not be writable by the agent it governs',
       );
     });
+  });
+});
+
+describe('DUPLICATE_POLICY — the contract is a manifest, not a pile', () => {
+  it('detects a policy declared twice in the raw text', () => {
+    const real = readFileSync(
+      join(ROOT_DIR, '.opencode', 'governance', 'governance-contract.json'),
+      'utf8',
+    );
+    assert.deepEqual(findDuplicatePolicies(real), [], 'the shipped contract must have no duplicates');
+
+    // Inject a second, weaker declaration of a policy that is already declared.
+    const stealth = [
+      '    "truth-gate.json": {',
+      '      "authority": "kernel", "enforcementMode": "runtime", "failureMode": "fail-closed",',
+      '      "status": "unenforced", "consumers": [], "adversarialTests": [], "note": "shadow copy"',
+      '    },',
+      '    "risk-engine.json": {',
+    ].join('\n');
+    const tampered = real.replace('    "risk-engine.json": {', stealth);
+
+    assert.deepEqual(findDuplicatePolicies(tampered), [{ policy: 'truth-gate.json', count: 2 }]);
+  });
+
+  it('blocks on a duplicate, because JSON.parse silently keeps only one', () => {
+    const contract = {
+      version: '1.0.0',
+      authorities: { kernel: 'x' },
+      enforcementModes: { runtime: 'x' },
+      failureModes: { 'fail-closed': 'x' },
+      policies: {},
+    };
+    const dir = fixture('duplicate-policy', {
+      asRepo: true,
+      policies: { 'thing.json': {} },
+      files: { '.opencode/plugins/enforce.js': "load('thing.json')\n" },
+    });
+
+    // Written by hand: JSON.stringify cannot produce a duplicate key, which is the whole point.
+    const entry = (status) => `    "thing.json": {
+      "authority": "kernel", "enforcementMode": "runtime", "failureMode": "fail-closed",
+      "status": "${status}", "consumers": [".opencode/plugins/enforce.js"], "adversarialTests": [], "note": "n"
+    }`;
+    const raw = `{
+  "version": "1.0.0",
+  "authorities": ${JSON.stringify(contract.authorities)},
+  "enforcementModes": ${JSON.stringify(contract.enforcementModes)},
+  "failureModes": ${JSON.stringify(contract.failureModes)},
+  "policies": {
+${entry('unenforced')},
+${entry('enforced')}
+  }
+}`;
+    writeFileSync(join(dir, '.opencode', 'governance', 'governance-contract.json'), raw);
+
+    const result = diagnose(dir);
+    assert.ok(codesFor(result, 'thing.json').includes('DUPLICATE_POLICY'));
+    assert.ok(result.summary.blockers > 0, 'a duplicate declaration must block');
+  });
+});
+
+describe('The enforcement invariant is frozen where it can be found', () => {
+  const STATEMENT_EN = 'A policy file is not an enforcement mechanism';
+
+  for (const copy of [
+    join(ROOT_DIR, 'templates', 'base', 'governance', 'behavior-contract.json'),
+    join(ROOT_DIR, '.opencode', 'governance', 'behavior-contract.json'),
+  ]) {
+    it(`${copy.includes('templates') ? 'shipped' : 'own'} behavior-contract.json carries it`, () => {
+      const contract = JSON.parse(readFileSync(copy, 'utf8'));
+      const inv = contract.enforcementInvariant;
+      assert.ok(inv, 'enforcementInvariant missing');
+      assert.match(inv.statementEn, /not an enforcement mechanism/);
+      assert.deepEqual(inv.chain, ['policy', 'authority', 'consumer', 'enforcement', 'adversarialTest', 'ci']);
+      assert.ok(existsSync(join(ROOT_DIR, inv.verifiedBy)), `verifiedBy must exist: ${inv.verifiedBy}`);
+    });
+  }
+
+  it('the README states it, and no longer claims the permission matrix is enforced at runtime', () => {
+    const readme = readFileSync(join(ROOT_DIR, 'README.md'), 'utf8');
+    assert.ok(readme.includes(STATEMENT_EN), 'README must carry the invariant verbatim');
+    assert.match(readme, /Permission matrix.*handoff \/ phase boundaries/s);
+  });
+
+  it('the doctor documents why the two modes exist', () => {
+    const doctor = readFileSync(join(ROOT_DIR, 'scripts', 'governance-doctor.mjs'), 'utf8');
+    assert.match(doctor, /AUTHORING MODE validates the implementation of behaviorOS itself/);
+    assert.match(doctor, /REPORT MODE validates the governance contract as applicable to an installed consumer/);
   });
 });

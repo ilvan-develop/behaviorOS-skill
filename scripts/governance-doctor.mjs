@@ -16,6 +16,7 @@
  * codebase and reports where the two disagree:
  *
  *   BLOCKER  UNDECLARED_POLICY   a policy file with no contract entry
+ *   BLOCKER  DUPLICATE_POLICY    the same policy declared twice in the contract
  *   BLOCKER  FALSE_ENFORCEMENT   declared "enforced", but no consumer actually references it
  *   BLOCKER  MISSING_CONSUMER    a declared consumer file does not exist
  *   BLOCKER  STALE_CONSUMER      the consumer exists but no longer references the policy
@@ -76,6 +77,30 @@ const posix = (p) => p.split('\\').join('/');
  * oage-lib.js as a consumer of audit.json and hid the real finding: nothing reads that
  * config at all, which is why its `retention` block never runs.
  */
+/**
+ * Policy keys declared more than once in the contract's `policies` block.
+ *
+ * Must work on the RAW TEXT: JSON allows duplicate keys and silently keeps the last one, so by
+ * the time `JSON.parse` has run, the earlier declaration — possibly the one saying "enforced,
+ * fail-closed" — has vanished without a trace. The contract is the kernel's manifest of
+ * authority; a policy must appear in it exactly once.
+ *
+ * Matches only keys at policy-entry indentation opening an object, so paths appearing inside
+ * `consumers` / `adversarialTests` arrays or prose in `note` are not mistaken for keys.
+ */
+export function findDuplicatePolicies(raw) {
+  const start = raw.indexOf('"policies"');
+  if (start === -1) return [];
+
+  const counts = new Map();
+  const entryKey = /^\s{4}"([^"]+)"\s*:\s*\{/gm;
+  let match;
+  while ((match = entryKey.exec(raw.slice(start))) !== null) {
+    counts.set(match[1], (counts.get(match[1]) || 0) + 1);
+  }
+  return [...counts.entries()].filter(([, n]) => n > 1).map(([key, n]) => ({ policy: key, count: n }));
+}
+
 export function referencesPolicy(source, policy) {
   const escaped = policy.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return new RegExp(`${escaped}(?![A-Za-z0-9_])`).test(source);
@@ -115,12 +140,20 @@ export function deriveConsumers(root, policyFiles) {
 }
 
 /**
- * The contract ships into consumer projects, where `core/` and `templates/` do not exist — so
- * a declared toolchain consumer like core/generator.mjs is legitimately absent there, and
- * calling that a blocker would make every installed project fail its own doctor.
+ * Two modes, and the distinction is deliberate — do not "fix" it into one.
  *
- * "authoring" = the behaviorOS repo, where the contract is written and every declared consumer
- * must be real. "report" = an installed project, where only what ships can be verified.
+ *   AUTHORING MODE validates the implementation of behaviorOS itself.
+ *   REPORT MODE validates the governance contract as applicable to an installed consumer.
+ *
+ * The contract ships into consumer projects, where `core/`, `templates/` and `tests/` do not
+ * exist. A declared toolchain consumer like core/generator.mjs, or a declared adversarial test
+ * that proves behaviorOS's own kernel, is legitimately absent there: a consumer inherits those
+ * guarantees from the package rather than re-deriving them. Treating their absence as a blocker
+ * would make every correctly installed project fail its own doctor.
+ *
+ * So the authoring-only checks are exactly those that ask "is this repo's implementation
+ * honest?" — MISSING_CONSUMER, STALE_CONSUMER (when the file is absent), FALSE_ENFORCEMENT,
+ * MISSING_TEST. Everything else holds in both contexts.
  */
 export function detectMode(root) {
   const isRepo = existsSync(join(root, 'core')) && existsSync(join(root, 'templates', 'base'));
@@ -146,7 +179,8 @@ export function diagnose(root) {
     };
   }
 
-  const contract = JSON.parse(readFileSync(contractPath, 'utf8'));
+  const rawContract = readFileSync(contractPath, 'utf8');
+  const contract = JSON.parse(rawContract);
   const declared = contract.policies || {};
 
   const onDisk = existsSync(governanceDir)
@@ -159,6 +193,13 @@ export function diagnose(root) {
   const findings = [];
   const rows = [];
   const add = (level, code, policy, detail) => findings.push({ level, code, policy, detail });
+
+  // Runs before anything else: a duplicate means the parsed object we are about to trust is
+  // already missing a declaration that the file makes.
+  for (const { policy, count } of findDuplicatePolicies(rawContract)) {
+    add(BLOCKER, 'DUPLICATE_POLICY', policy,
+      `Declared ${count} times in the contract. JSON keeps only the last, so the other ${count - 1} declaration(s) are silently discarded — including any stricter authority they claimed.`);
+  }
 
   for (const policy of allPolicies) {
     const entry = declared[policy];
