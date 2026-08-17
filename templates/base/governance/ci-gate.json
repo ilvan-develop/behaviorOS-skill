@@ -1,0 +1,25 @@
+{
+  "version": "1.0.0",
+  "description": "Checks obrigatórios de CI (OAGE §34-36, §60). O CI é a autoridade final — uma tarefa declarada 'COMPLETED' por um agente não é aceite até estes checks passarem.",
+  "required": [
+    { "id": "policy-validation", "command": "node scripts/validate.mjs" },
+    { "id": "secret-scan", "command": "node scripts/lint.mjs --secrets-only" },
+    { "id": "typecheck", "command": "pnpm typecheck", "skipIfMissing": true },
+    { "id": "lint", "command": "pnpm lint", "skipIfMissing": true },
+    { "id": "unit-tests", "command": "pnpm test", "skipIfMissing": true },
+    { "id": "build", "command": "pnpm build", "skipIfMissing": true }
+  ],
+  "criticalPhaseExtra": [
+    { "id": "integration-tests", "command": "pnpm test:integration", "skipIfMissing": true },
+    { "id": "e2e-tests", "command": "pnpm test:e2e", "skipIfMissing": true },
+    { "id": "security-scan", "command": "pnpm audit --audit-level=high", "skipIfMissing": true }
+  ],
+  "failConditions": [
+    "policy_failed",
+    "security_failed",
+    "typecheck_failed",
+    "tests_failed",
+    "build_failed",
+    "anti_pattern_critical"
+  ]
+}

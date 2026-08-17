@@ -56,46 +56,49 @@ After installation, your project will have:
 
 ```
 your-project/
-├── AGENTS.md                         # Agent roles and governance rules
-├── opencode.json                     # OpenCode config (PROJECT ROOT)
+├── AGENTS.md                         # Agent roles (only if the template ships one)
+├── opencode.json                     # OpenCode config (PROJECT ROOT, no governance key)
+├── .github/workflows/
+│   └── oage-ci.yml                   # CI re-validates policy/secrets/tests independent of agent claims
 ├── scripts/                          # Governance scripts
-│   ├── agent-loop.ps1                # Main orchestrator loop
-│   ├── audit-logger.ps1              # Audit logging
-│   ├── enforce.ps1                   # Enforcement script
-│   ├── gates.ps1                     # Gate checks
-│   ├── run-pipeline.ps1              # Pipeline runner
-│   ├── skill-tracker.ps1             # Skill tracking
-│   ├── state-manager.ps1             # State management
-│   ├── validate.mjs                  # Configuration validator
+│   ├── agent-loop.ps1, audit-logger.ps1, enforce.ps1, gates.ps1,
+│   │   run-pipeline.ps1, skill-tracker.ps1, state-manager.ps1
+│   ├── validate.mjs, lint.mjs        # Config validator + JSON/secret/anti-pattern scan
+│   ├── audit-event.mjs               # Log confidence_declared / dependency_justification / review_approved
+│   ├── handoff.mjs                   # Generate structured agent-to-agent handoff docs
+│   ├── evidence-check.mjs            # Validate phase evidence before "completed"
+│   ├── reviewer-check.mjs            # Validate independent review for critical phases
+│   ├── oage-metrics.mjs              # Observability report
 │   └── guards/
-│       ├── permission-guard.ps1      # Permission checks
-│       ├── skill-guard.ps1           # Skill validation
-│       ├── state-guard.ps1           # State validation
-│       └── tool-guard.ps1            # Tool validation
-├── .agents/
-│   └── skills/                       # Project-level agent skills
+│       ├── permission-guard.ps1, skill-guard.ps1, state-guard.ps1, tool-guard.ps1
 └── .opencode/
     ├── governance/
-    │   ├── INSTRUCTIONS.md           # Absolute rules
-    │   ├── permissions-matrix.json   # Permission matrix
-    │   ├── skill-gate.json           # Skill validation
-    │   ├── tool-gate.json            # Tool validation
-    │   ├── state-machine.json        # Orchestrator lifecycle
-    │   ├── memory.json               # Memory configuration
-    │   ├── audit.json                # Audit configuration
-    │   ├── security-gates.json       # Security validations
-    │   └── production-gate.json      # Production readiness
+    │   ├── INSTRUCTIONS.md           # Absolute rules (+ OAGE rules 20-27 appended)
+    │   ├── permissions-matrix.json, skill-gate.json, skill-gate-auto.json,
+    │   │   tool-gate.json, state-machine.json, memory.json, audit.json,
+    │   │   security-gates.json, production-gate.json
+    │   └── anti-patterns.json, protected-resources.json, loop-detector.json,
+    │       dependency-gate.json, truth-gate.json, context7-gate.json,
+    │       version-pinning-gate.json, reviewer-gate.json, mcp-registry.json,
+    │       handoff-schema.json, definition-of-done.json, ci-gate.json
+    ├── plugins/
+    │   ├── oage-enforce.js          # tool.execute.before — 10 runtime-enforced gates
+    │   ├── oage-audit.js            # tool.execute.after — audit trail + gate-specific events
+    │   └── lib/oage-lib.js          # Shared utilities
+    ├── commands/                     # /oage-doctor, /oage-audit, /oage-review, /oage-research, /oage-release
     ├── skills/                       # Local skills
     ├── memory/
-    │   ├── decisions.md
-    │   ├── patterns.md
-    │   ├── learnings.md
-    │   ├── current-phase.md
-    │   └── scope-history.md
+    │   ├── decisions.md, patterns.md, learnings.md, current-phase.md, scope-history.md
     └── audit/
+        ├── skills-loaded.json        # Skill tracking (flat object format)
+        ├── audit.jsonl               # Auto-created on first tool call
+        └── loop-state.json           # Auto-created on first loop check
 ```
 
-**Important:** `opencode.json` and `AGENTS.md` go to the **project root**, NOT to `.opencode/governance/`. Scripts go to `<project-root>/scripts/`.
+**Important:** `opencode.json` and `AGENTS.md` go to the **project root**, NOT to
+`.opencode/governance/`. Scripts go to `<project-root>/scripts/`. Without
+`.opencode/plugins/`, the JSON files under `.opencode/governance/` are advisory only — see
+[INTEGRATION.md](INTEGRATION.md) for how the runtime enforcement actually works.
 
 ## Skills System
 

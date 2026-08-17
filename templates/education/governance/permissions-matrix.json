@@ -6,37 +6,153 @@
       "name": "Fundação",
       "isCritical": false,
       "requiredApprovals": 0,
-      "allowedAgents": ["orchestrator", "architect", "devops"]
+      "allowedAgents": [
+        "orchestrator",
+        "architect",
+        "devops"
+      ]
     },
     "F1": {
       "name": "Auth + Users",
       "isCritical": false,
       "requiredApprovals": 0,
-      "allowedAgents": ["orchestrator", "architect", "backend", "database", "qa"]
+      "allowedAgents": [
+        "orchestrator",
+        "architect",
+        "backend",
+        "database",
+        "qa"
+      ]
     },
     "F2": {
       "name": "Cursos",
       "isCritical": false,
       "requiredApprovals": 0,
-      "allowedAgents": ["orchestrator", "architect", "backend", "database", "qa"]
+      "allowedAgents": [
+        "orchestrator",
+        "architect",
+        "backend",
+        "database",
+        "qa"
+      ]
     },
     "F3": {
       "name": "Conteúdo",
       "isCritical": true,
       "requiredApprovals": 1,
-      "allowedAgents": ["orchestrator", "architect", "backend", "frontend", "database", "qa"]
+      "allowedAgents": [
+        "orchestrator",
+        "architect",
+        "backend",
+        "frontend",
+        "database",
+        "qa"
+      ]
     },
     "F4": {
       "name": "Progresso",
       "isCritical": true,
       "requiredApprovals": 1,
-      "allowedAgents": ["orchestrator", "architect", "backend", "frontend", "database", "qa"]
+      "allowedAgents": [
+        "orchestrator",
+        "architect",
+        "backend",
+        "frontend",
+        "database",
+        "qa"
+      ]
     },
     "F5": {
       "name": "Endurecimento",
       "isCritical": false,
       "requiredApprovals": 0,
-      "allowedAgents": ["orchestrator", "backend", "frontend", "qa", "security", "devops"]
+      "allowedAgents": [
+        "orchestrator",
+        "backend",
+        "frontend",
+        "qa",
+        "security",
+        "devops"
+      ]
+    }
+  },
+  "autonomyLevels": {
+    "L1": {
+      "name": "Routine",
+      "description": "Standard CRUD, tests, lint, migration",
+      "allowedActions": [
+        "CRUD padrao",
+        "testes",
+        "lint",
+        "typecheck",
+        "migrations padrao"
+      ],
+      "approvalRequired": false
+    },
+    "L2": {
+      "name": "Auto-Expand",
+      "description": "Add field, create auxiliary service, refactor",
+      "allowedActions": [
+        "campos auxiliares",
+        "services auxiliares",
+        "refactoracao",
+        "migrations adicionais"
+      ],
+      "approvalRequired": false,
+      "auditTrail": true
+    },
+    "L3": {
+      "name": "Escalate",
+      "description": "New dependency, schema change, compliance uncertainty",
+      "allowedActions": [
+        "novas dependencias",
+        "mudancas de schema",
+        "compliance",
+        "seguranca",
+        "arquitetura"
+      ],
+      "approvalRequired": true,
+      "blockExecution": true
+    }
+  },
+  "rules": {
+    "F0": {
+      "maxAutonomyLevel": "L2",
+      "allowedOperations": [
+        "fundação"
+      ]
+    },
+    "F1": {
+      "maxAutonomyLevel": "L2",
+      "allowedOperations": [
+        "auth + users"
+      ]
+    },
+    "F2": {
+      "maxAutonomyLevel": "L2",
+      "allowedOperations": [
+        "cursos"
+      ]
+    },
+    "F3": {
+      "maxAutonomyLevel": "L2",
+      "allowedOperations": [
+        "conteúdo"
+      ],
+      "requiresApproval": true
+    },
+    "F4": {
+      "maxAutonomyLevel": "L2",
+      "allowedOperations": [
+        "progresso"
+      ],
+      "requiresApproval": true
+    },
+    "F5": {
+      "maxAutonomyLevel": "L2",
+      "allowedOperations": [
+        "endurecimento"
+      ]
     }
   }
 }

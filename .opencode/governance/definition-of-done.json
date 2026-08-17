@@ -1,0 +1,31 @@
+{
+  "version": "1.0.0",
+  "description": "Definition of Done e requisitos de evidência antes de marcar uma fase como 'completed' (OAGE §31-32). Validado por scripts/evidence-check.mjs.",
+  "requiredEvidenceFields": [
+    "filesChanged",
+    "testsRun",
+    "testResults",
+    "buildResult",
+    "lintResult",
+    "typecheckResult"
+  ],
+  "conditionalEvidenceFields": {
+    "isCritical": ["securityResult", "diffSummary", "reviewedBy"]
+  },
+  "checklist": [
+    "Requirements satisfied",
+    "Architecture respected",
+    "Existing patterns reused",
+    "Tests added/updated",
+    "Typecheck passes",
+    "Lint passes",
+    "Build passes",
+    "Security checked (fases críticas)",
+    "Diff reviewed",
+    "No unrelated changes",
+    "Documentation updated when needed",
+    "Evidence recorded in .opencode/evidence/"
+  ],
+  "evidenceDir": ".opencode/evidence",
+  "evidenceFilePattern": "{phase}.json"
+}

@@ -3,7 +3,7 @@ name: behaviorOS
 description: Autonomous development governance system with skill gates, tool gates, permissions, state machine, memory, audit trail, and compliance. Sets up governance for any software project with three-level autonomy model.
 metadata:
   scope: governance
-  version: "1.0.0"
+  version: "1.1.0"
   author: "Ilvan Joaquim"
   homepage: "https://github.com/behaviorOS/behaviorOS"
 ---
@@ -50,6 +50,33 @@ behaviorOS is a governance system for autonomous software development. It enable
 /behaviorOS install --template saas-b2b
 ```
 
+## Mandatory Flow (Rules 11-19)
+
+**Before ANY task, the AI agent MUST follow this sequence:**
+
+```
+1. context7_resolve-library-id  -> resolve library name
+2. context7_query-docs           -> get current documentation
+3. skill (tool)                  -> load relevant skill
+4. Read skill anti-patterns     -> understand what NOT to do
+5. implement                     -> write code using only documented APIs
+6. enforce.ps1                   -> validate before tool call
+7. update memory                 -> record decisions/patterns
+```
+
+### Key Rules
+- **Rule 11**: Context7 is OBLIGATORY - never assume APIs from memory
+- **Rule 12**: Load skill BEFORE code - read anti-patterns first
+- **Rule 13**: Anti-patterns are prohibited - fix before commit
+- **Rule 16**: Enforcement Layer is MANDATORY — runtime plugin enforces automatically (no manual script needed)
+- **Rule 17**: Skill tracking is MANDATORY — auto-detected by `oage-audit.js` when `skill` tool is used
+- **Rule 18**: Agent Loop is MANDATORY for ALL phases — plugin warns if context7 + skill sequence skipped
+- **Rule 19**: Version pinning is MANDATORY — plugin warns if `package.json` not consulted
+- **Rules 20-27**: Runtime-enforced on every `tool.execute.before` call — protected resources, anti-pattern
+  scanning, loop detection, dependency justification, truth-gate confidence, independent
+  review, structured handoffs, evidence-based completion. See `.opencode/governance/INSTRUCTIONS.md`
+  and `.opencode/plugins/oage-enforce.js`.
+
 ## Available Templates
 
 | Template | Description | Use Case |
@@ -93,30 +120,73 @@ behaviorOS is a governance system for autonomous software development. It enable
 
 ```
 your-project/
-├── opencode.json                    # Central configuration
+├── opencode.json                    # Central configuration (schema-valid, no governance key)
+├── .github/workflows/
+│   └── oage-ci.yml                  # CI as final authority (policy, secrets, lint, test, build)
 └── .opencode/
     ├── governance/
-    │   ├── INSTRUCTIONS.md          # Absolute rules
+    │   ├── INSTRUCTIONS.md          # Absolute rules (+ OAGE rules 20-27 appended)
     │   ├── permissions-matrix.json  # Permission matrix
-    │   ├── skill-gate.json          # Skill validation
+    │   ├── skill-gate.json          # Skill validation (phase-based)
+    │   ├── skill-gate-auto.json     # Skill validation (file-extension-based, plugin reads this)
     │   ├── tool-gate.json           # Tool validation
     │   ├── state-machine.json       # Orchestrator lifecycle
     │   ├── memory.json              # Memory configuration
     │   ├── audit.json               # Audit configuration
     │   ├── security-gates.json      # Security validations
-    │   └── production-gate.json     # Production readiness
+    │   ├── production-gate.json     # Production readiness
+    │   ├── anti-patterns.json       # Anti-pattern library (29 patterns, regex + manual)
+    │   ├── protected-resources.json # .env/secrets/keys — never readable/writable
+    │   ├── loop-detector.json       # Repeated-action / recovery thresholds
+    │   ├── dependency-gate.json     # New-dependency justification requirement
+    │   ├── truth-gate.json          # Confidence threshold for critical files
+    │   ├── context7-gate.json       # Context7 requirement (enforced by plugin)
+    │   ├── version-pinning-gate.json# Version pinning enforcement (enforced by plugin)
+    │   ├── reviewer-gate.json       # Independent review required for critical phases
+    │   ├── mcp-registry.json        # Registered MCP servers + risk
+    │   ├── handoff-schema.json      # Structured agent-to-agent handoff schema
+    │   ├── definition-of-done.json  # Evidence required before "completed"
+    │   └── ci-gate.json             # Required CI checks
+    ├── plugins/
+    │   ├── oage-enforce.js         # tool.execute.before — 10 runtime-enforced gates
+    │   ├── oage-audit.js           # tool.execute.after — audit trail + gate-specific events
+    │   └── lib/oage-lib.js         # Shared utilities
+    ├── commands/
+    │   ├── oage-doctor.md           # /oage-doctor — health check
+    │   ├── oage-audit.md            # /oage-audit — full governance audit
+    │   ├── oage-review.md           # /oage-review — read-only diff review
+    │   ├── oage-research.md         # /oage-research — context7-gated library research
+    │   └── oage-release.md          # /oage-release — production checklist
     ├── memory/
     │   ├── decisions.md
     │   ├── patterns.md
     │   ├── learnings.md
     │   ├── current-phase.md
     │   └── scope-history.md
-    ├── plugins/
-    │   └── audit.mjs
     └── skills/                      # Compliance skills
         ├── compliance/
         └── ...
 ```
+
+### Runtime enforcement vs. advisory gates
+
+The JSON files under `.opencode/governance/` are policy — they only take effect because
+`.opencode/plugins/oage-enforce.js` reads them on every `tool.execute.before` call and
+`.opencode/plugins/oage-audit.js` logs every call automatically. Without those two plugin
+files, the gates are advisory only (an agent has to voluntarily call `enforce.ps1`, per Rule
+16) — install them into any project you didn't generate through `install.mjs` if you want the
+same protection.
+
+### New CLI helpers
+
+| Command | Purpose |
+|---------|---------|
+| `node scripts/audit-event.mjs --event <name> ...` | Log `confidence_declared` / `dependency_justification` / `review_approved` events required by the truth/dependency/reviewer gates |
+| `node scripts/handoff.mjs --from <agent> --to <agent> ...` | Generate a structured handoff doc in `.opencode/handoffs/` |
+| `node scripts/evidence-check.mjs --phase <F#>` | Validate `.opencode/evidence/{phase}.json` against `definition-of-done.json` |
+| `node scripts/reviewer-check.mjs --phase <F#>` | Validate an independent review exists for a critical phase |
+| `node scripts/oage-metrics.mjs` | Observability report (denial rate, loop detection rate, skill/context7 usage) |
+| `node scripts/lint.mjs` | JSON validity + secret scan + critical anti-pattern scan |
 
 ## Three-Level Autonomy Model
 

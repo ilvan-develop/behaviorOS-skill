@@ -1,0 +1,297 @@
+{
+  "version": "1.0.0",
+  "description": "Biblioteca central de anti-patterns (OAGE §22-26). Compartilhada por todos os templates e carregada pelo plugin de enforcement.",
+  "enabled": true,
+  "categories": {
+    "architecture": [
+      {
+        "id": "arch-code-without-understanding",
+        "name": "Codificar sem entender arquitetura",
+        "severity": "high",
+        "detection": "manual",
+        "message": "Agente deve ler AGENTS.md e docs/architecture antes de qualquer implementação em arquivos novos."
+      },
+      {
+        "id": "arch-premature-abstraction",
+        "name": "Abstração prematura",
+        "severity": "medium",
+        "detection": "manual",
+        "message": "Não criar factories/interfaces genéricas para um único caso de uso."
+      },
+      {
+        "id": "arch-duplicate-component",
+        "name": "Duplicar componente existente",
+        "severity": "medium",
+        "detection": "manual",
+        "message": "Verificar design system / packages compartilhados antes de criar novo componente."
+      },
+      {
+        "id": "arch-out-of-scope-edit",
+        "name": "Modificar arquivos fora do escopo aprovado",
+        "severity": "high",
+        "detection": "regex",
+        "appliesTo": "*",
+        "message": "Toda escrita deve corresponder ao scopeId/allowedAgents da fase actual (ver permissions-matrix.json)."
+      }
+    ],
+    "database": [
+      {
+        "id": "db-schema-without-migration",
+        "name": "Alterar schema sem migration",
+        "severity": "critical",
+        "detection": "regex",
+        "pattern": "model\\s+\\w+\\s*\\{",
+        "appliesTo": "*.prisma",
+        "requireExistingFile": true,
+        "message": "Toda alteração de schema.prisma requer migration correspondente (pnpm prisma migrate dev).",
+        "note": "requireExistingFile=true: this pattern can't tell 'changed a model' from 'defined a model' — every model in a schema.prisma matches `model X {`, including the file's very first creation. Without this flag it live-blocked creating prisma/schema.prisma for the first time in a fresh project, which is normal F0/F1 work, not a violation. Scoping to 'the file already existed' at least limits it to actual re-edits, though it still can't verify a migration was actually created (that needs filesystem awareness beyond a content regex)."
+      },
+      {
+        "id": "db-missing-tenant-isolation",
+        "name": "Query sem isolamento de tenant",
+        "severity": "critical",
+        "detection": "regex",
+        "pattern": "\\.(findMany|findFirst|findUnique)\\((?!.*organizationId)",
+        "appliesTo": "*.service.ts",
+        "message": "Queries multi-tenant devem filtrar por organizationId."
+      },
+      {
+        "id": "db-destructive-without-gate",
+        "name": "Operação destrutiva sem gate",
+        "severity": "critical",
+        "detection": "regex",
+        "pattern": "(DROP\\s+TABLE|TRUNCATE|DELETE\\s+FROM\\s+\\w+\\s*;)",
+        "appliesTo": "*",
+        "message": "DROP/TRUNCATE/DELETE em massa requer aprovação humana explícita."
+      }
+    ],
+    "api": [
+      {
+        "id": "api-contract-missing",
+        "name": "Rota sem contrato definido",
+        "severity": "high",
+        "detection": "manual",
+        "message": "Nenhuma rota deve ser implementada sem contrato (input/output/errors/permissões) definido primeiro."
+      },
+      {
+        "id": "api-breaking-change-no-consumers-check",
+        "name": "Alterar contrato sem verificar consumidores",
+        "severity": "high",
+        "detection": "manual",
+        "message": "Antes de alterar um contrato existente, localizar todos os consumidores (grep) e avaliar impacto."
+      }
+    ],
+    "security": [
+      {
+        "id": "sec-hardcoded-secret",
+        "name": "Segredo hardcoded no código",
+        "severity": "critical",
+        "detection": "regex",
+        "pattern": "(password|secret|token|api_key|apikey)\\s*[:=]\\s*['\"][^'\"]{4,}['\"]",
+        "appliesTo": "*",
+        "message": "Nunca colocar segredos em código-fonte. Usar variáveis de ambiente / secret manager."
+      },
+      {
+        "id": "sec-sql-injection",
+        "name": "Concatenação de SQL não parametrizada",
+        "severity": "critical",
+        "detection": "regex",
+        "pattern": "\\.(query|raw|\\$queryRaw)\\(.*\\$\\{",
+        "appliesTo": "*",
+        "message": "Usar queries parametrizadas; nunca interpolar variáveis directamente em SQL."
+      },
+      {
+        "id": "sec-disabled-auth",
+        "name": "Bypass de autenticação/autorização",
+        "severity": "critical",
+        "detection": "regex",
+        "pattern": "(@Public\\(\\)|skipAuth\\s*[:=]\\s*true|disableAuth)",
+        "appliesTo": "*",
+        "message": "Desactivar auth/guard requer justificação explícita e aprovação humana."
+      },
+      {
+        "id": "sec-any-type-bypass",
+        "name": "Uso de `any` para contornar tipos",
+        "severity": "medium",
+        "detection": "regex",
+        "pattern": ":\\s*any\\b",
+        "appliesTo": "*.ts",
+        "message": "Evitar `any`; preferir tipos explícitos ou `unknown` com narrowing."
+      }
+    ],
+    "testing": [
+      {
+        "id": "test-deleted-to-pass-ci",
+        "name": "Apagar/desactivar teste para o CI passar",
+        "severity": "critical",
+        "detection": "manual",
+        "message": "Nunca remover ou marcar `skip`/`todo` num teste para contornar falha. Corrigir a causa raiz."
+      },
+      {
+        "id": "test-todo-as-implementation",
+        "name": "TODO como substituto de implementação",
+        "severity": "high",
+        "detection": "regex",
+        "pattern": "(TODO|FIXME):\\s*implement",
+        "appliesTo": "*",
+        "message": "Não declarar tarefa concluída com implementação pendente marcada como TODO."
+      }
+    ],
+    "git": [
+      {
+        "id": "git-force-push",
+        "name": "Force push",
+        "severity": "critical",
+        "detection": "regex",
+        "pattern": "git\\s+push\\s+.*--force",
+        "appliesTo": "bash",
+        "message": "Force push é proibido sem aprovação humana explícita."
+      },
+      {
+        "id": "git-secret-commit",
+        "name": "Commit de segredos",
+        "severity": "critical",
+        "detection": "regex",
+        "pattern": "git\\s+add\\s+.*(\\.env$|credentials)",
+        "appliesTo": "bash",
+        "message": "Nunca adicionar .env ou ficheiros de credenciais ao stage."
+      }
+    ],
+    "monorepo": [
+      {
+        "id": "monorepo-cross-package-relative-import",
+        "name": "Import relativo entre packages do monorepo",
+        "severity": "medium",
+        "detection": "regex",
+        "pattern": "from\\s+['\"]\\.\\./\\.\\./\\.\\./packages/",
+        "appliesTo": "*.ts",
+        "message": "Usar o nome do package (workspace) em vez de caminho relativo profundo entre packages."
+      },
+      {
+        "id": "monorepo-circular-dependency",
+        "name": "Dependência circular entre packages",
+        "severity": "high",
+        "detection": "manual",
+        "message": "Verificar grafo de dependências do turborepo antes de importar entre packages novos."
+      }
+    ],
+    "typescript": [
+      {
+        "id": "ts-ignore-suppression",
+        "name": "Suprimir erro de tipo com @ts-ignore/@ts-nocheck",
+        "severity": "high",
+        "detection": "regex",
+        "pattern": "@ts-(ignore|nocheck)",
+        "appliesTo": "*.ts",
+        "message": "Corrigir o tipo em vez de suprimir o erro do compilador."
+      },
+      {
+        "id": "ts-non-null-assertion-unchecked",
+        "name": "Non-null assertion (!) sem validação prévia",
+        "severity": "medium",
+        "detection": "manual",
+        "message": "Preferir narrowing explícito (if/guard) a `!` em dados de origem externa (API, DB, input)."
+      }
+    ],
+    "react": [
+      {
+        "id": "react-missing-key",
+        "name": "Lista renderizada sem `key` estável",
+        "severity": "medium",
+        "detection": "regex",
+        "pattern": "\\.map\\(\\s*\\([^)]*\\)\\s*=>\\s*<[A-Za-z]",
+        "appliesTo": "*.tsx",
+        "message": "Verificar manualmente se o elemento gerado por .map() tem prop `key` estável (não usar índice do array)."
+      },
+      {
+        "id": "react-effect-without-deps",
+        "name": "useEffect sem array de dependências",
+        "severity": "medium",
+        "detection": "regex",
+        "pattern": "useEffect\\(\\s*\\(\\)\\s*=>\\s*\\{[^}]*\\}\\s*\\)",
+        "appliesTo": "*.tsx",
+        "message": "useEffect sem segundo argumento executa em todo o render — confirmar que é intencional."
+      }
+    ],
+    "nextjs": [
+      {
+        "id": "nextjs-client-secret-exposure",
+        "name": "Variável de ambiente sem prefixo NEXT_PUBLIC_ usada no client",
+        "severity": "critical",
+        "detection": "manual",
+        "message": "Nunca referenciar `process.env.X` (sem NEXT_PUBLIC_) num Client Component — o valor não existirá em runtime, e se existir em build pode vazar segredo no bundle."
+      },
+      {
+        "id": "nextjs-fetch-without-cache-strategy",
+        "name": "fetch() em Server Component sem estratégia de cache explícita",
+        "severity": "low",
+        "detection": "manual",
+        "message": "Definir explicitamente `cache`/`next.revalidate` em vez de depender do default implícito do App Router."
+      }
+    ],
+    "ci-cd": [
+      {
+        "id": "cicd-skip-verify",
+        "name": "Bypass de hooks/CI (--no-verify, skip CI)",
+        "severity": "critical",
+        "detection": "regex",
+        "pattern": "(--no-verify|\\[skip ci\\]|\\[ci skip\\])",
+        "appliesTo": "*",
+        "message": "Nunca saltar hooks ou o CI para forçar um commit/push a passar."
+      },
+      {
+        "id": "cicd-disabled-required-check",
+        "name": "Desactivar um check obrigatório do CI",
+        "severity": "critical",
+        "detection": "manual",
+        "message": "Ver ci-gate.json — remover/comentar um check de `required` requer aprovação humana explícita."
+      }
+    ],
+    "ux": [
+      {
+        "id": "ux-missing-loading-state",
+        "name": "Chamada assíncrona sem estado de loading/erro",
+        "severity": "low",
+        "detection": "manual",
+        "message": "Toda chamada assíncrona visível ao utilizador deve tratar loading, erro e estado vazio."
+      },
+      {
+        "id": "ux-missing-aria-label",
+        "name": "Elemento interativo sem rótulo acessível",
+        "severity": "medium",
+        "detection": "manual",
+        "message": "Botões/inputs apenas com ícone precisam de aria-label ou texto visualmente oculto."
+      }
+    ],
+    "ai-agents": [
+      {
+        "id": "agent-code-from-memory",
+        "name": "Implementar API de biblioteca a partir da memória do modelo",
+        "severity": "high",
+        "detection": "manual",
+        "message": "Consultar context7 (resolve-library-id + query-docs) antes de usar API de biblioteca externa."
+      },
+      {
+        "id": "agent-self-approval",
+        "name": "Agente aprova o seu próprio trabalho",
+        "severity": "high",
+        "detection": "manual",
+        "message": "Fases críticas exigem revisão por um agente/humano diferente do implementador (ver reviewer gate em state-machine)."
+      },
+      {
+        "id": "agent-fake-completion",
+        "name": "Declarar sucesso sem evidência",
+        "severity": "critical",
+        "detection": "manual",
+        "message": "Nunca declarar 'concluído', 'testes passam' ou 'build funciona' sem executar e anexar evidência (ver definition-of-done.json)."
+      },
+      {
+        "id": "agent-infinite-loop",
+        "name": "Repetir a mesma ação após falha repetida",
+        "severity": "high",
+        "detection": "automatic",
+        "message": "Detectado pelo plugin oage-enforce (loop detector). Após N repetições idênticas, a execução é bloqueada e a fase é marcada para escalonamento."
+      }
+    ]
+  }
+}

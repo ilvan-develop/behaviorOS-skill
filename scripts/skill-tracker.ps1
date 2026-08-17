@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     behaviorOS Skill Tracker - Rastreia skills carregadas na sessao
@@ -69,13 +69,31 @@ function Read-TrackedSkills {
             lastUpdate = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
         }
     }
-    return Get-Content $TrackingFile -Raw | ConvertFrom-Json
+    return Get-Content $TrackingFile -Raw -Encoding UTF8 | ConvertFrom-Json
+}
+
+# Windows PowerShell 5.1's `-Encoding UTF8` (Set-Content/Add-Content) writes a BOM, which
+# breaks Node's JSON.parse (scripts/oage-metrics.mjs reads skill-selections.log as JSONL).
+function Set-Utf8NoBom {
+    param([string]$Path, [string]$Content)
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($Path, $Content, $utf8NoBom)
+}
+
+function Add-Utf8NoBomLine {
+    param([string]$Path, [string]$Line)
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    if (-not (Test-Path $Path)) {
+        [System.IO.File]::WriteAllText($Path, "$Line`n", $utf8NoBom)
+    } else {
+        [System.IO.File]::AppendAllText($Path, "$Line`n", $utf8NoBom)
+    }
 }
 
 # Funcao para escrever skills rastreadas
 function Write-TrackedSkills {
     param($Object)
-    $Object | ConvertTo-Json -Depth 10 | Set-Content $TrackingFile
+    Set-Utf8NoBom -Path $TrackingFile -Content ($Object | ConvertTo-Json -Depth 10)
 }
 
 # Funcao para registrar no log de selecao
@@ -99,7 +117,7 @@ function Log-SkillSelection {
     }
     
     $json = $entry | ConvertTo-Json -Compress
-    Add-Content -Path $SkillSelectionsLog -Value $json
+    Add-Utf8NoBomLine -Path $SkillSelectionsLog -Line $json
 }
 
 # ========================================
@@ -115,7 +133,7 @@ if ($Action -eq "list") {
 
     $hasSkills = $false
     if (Test-Path $TrackingFile) {
-        $json = Get-Content $TrackingFile -Raw
+        $json = Get-Content $TrackingFile -Raw -Encoding UTF8
         if ($json -match '"name"\s*:\s*"([^"]+)"') {
             $matches_found = [regex]::Matches($json, '"name"\s*:\s*"([^"]+)"')
             $agent_matches = [regex]::Matches($json, '"agent"\s*:\s*"([^"]+)"')

@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     behaviorOS Permission Guard - Valida permissões por fase
@@ -48,7 +48,7 @@ if (-not (Test-Path $PermissionsFile)) {
 
 # Ler permissions-matrix.json
 try {
-    $permissions = Get-Content $PermissionsFile -Raw | ConvertFrom-Json
+    $permissions = Get-Content $PermissionsFile -Raw -Encoding UTF8 | ConvertFrom-Json
 } catch {
     Write-Host "[ERROR] Erro ao ler permissions-matrix.json: $_" -ForegroundColor Red
     exit 1
@@ -108,8 +108,9 @@ if ($autonomyLevel -eq "L3") {
         & $auditScript -Tool "permission" -File "phase-$Phase" -Agent $Agent -Phase $Phase -Result "ASK" -Gate "permission" -Message "L3 approval required"
     }
 
-    # Por agora, permitir (em implementacao futura, pausar para aprovacao)
-    Write-Host "   [PERMITIDO] Continuando..." -ForegroundColor Green
+    # Bloquear execucao - L3 requer aprovacao humana
+    Write-Host "   [BLOCKED] Execucao bloqueada - aguardando aprovacao humana" -ForegroundColor Red
+    exit 1
 }
 
 # Verificar se a fase requer aprovacao
@@ -122,8 +123,9 @@ if ($phaseData.requiredApprovals -and $phaseData.requiredApprovals -gt 0) {
         & $auditScript -Tool "permission" -File "phase-$Phase" -Agent $Agent -Phase $Phase -Result "ASK" -Gate "permission" -Message "Approval required"
     }
 
-    # Por agora, permitir
-    Write-Host "   [PERMITIDO] Continuando..." -ForegroundColor Green
+    # Bloquear execucao - aprovacao requerida
+    Write-Host "   [BLOCKED] Execucao bloqueada - aprovacao requerida" -ForegroundColor Red
+    exit 1
 }
 
 Write-Host "[PASS] Agente '$Agent' tem permissao na fase $Phase" -ForegroundColor Green

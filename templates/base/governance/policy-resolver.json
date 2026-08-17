@@ -1,0 +1,103 @@
+{
+  "version": "1.0.0",
+  "description": "BehaviorOS Policy Resolver — mapeia risk level + operation para enforcement actions (block/require/warn/off).",
+
+  "policies": {
+    "context7-gate": {
+      "description": "Exige context7 query antes de edits em arquivos de dependência/documentação.",
+      "rules": {
+        "read":               { "action": "off" },
+        "lint":               { "action": "off" },
+        "typecheck":          { "action": "off" },
+        "test":               { "action": "off" },
+        "edit-readme":        { "action": "off" },
+        "edit-docs":          { "action": "off" },
+        "edit-config":        { "action": "off" },
+        "edit-test":          { "action": "off" },
+        "edit-component":     { "action": "off" },
+        "edit-layout":        { "action": "off" },
+        "edit-page":          { "action": "off" },
+        "edit-service":       { "action": "require", "windowMinutes": 30 },
+        "edit-controller":    { "action": "require", "windowMinutes": 30 },
+        "edit-schema":        { "action": "require", "windowMinutes": 30 },
+        "edit-contract":      { "action": "require", "windowMinutes": 30 },
+        "edit-module":        { "action": "require", "windowMinutes": 30 },
+        "edit-middleware":    { "action": "require", "windowMinutes": 30 },
+        "edit-guard":         { "action": "require", "windowMinutes": 30 },
+        "edit-pipe":          { "action": "require", "windowMinutes": 30 },
+        "edit-decorator":     { "action": "require", "windowMinutes": 30 },
+        "edit-migration":     { "action": "require", "windowMinutes": 60 },
+        "edit-auth":          { "action": "require", "windowMinutes": 60 },
+        "edit-payment":       { "action": "require", "windowMinutes": 60 },
+        "edit-ledger":        { "action": "require", "windowMinutes": 60 },
+        "edit-security":      { "action": "require", "windowMinutes": 60 },
+        "edit-infrastructure":{ "action": "require", "windowMinutes": 60 },
+        "edit-environment":   { "action": "require", "windowMinutes": 60 },
+        "install-dependency": { "action": "require", "windowMinutes": 60 },
+        "uninstall-dependency":{ "action": "require", "windowMinutes": 60 }
+      }
+    },
+
+    "truth-gate": {
+      "description": "Exige evidence antes de edits. Threshold varia por risk level.",
+      "minConfidenceByRisk": {
+        "LOW":      0,
+        "MEDIUM":   60,
+        "HIGH":     80,
+        "CRITICAL": 95
+      }
+    },
+
+    "skill-gate": {
+      "description": "Exige skills relevantes baseado na tecnologia detectada.",
+      "rules": {
+        "read":         { "required": [] },
+        "edit-component": { "required": ["react", "tailwind", "ui-components"], "mode": "one-of" },
+        "edit-page":    { "required": ["nextjs"], "mode": "one-of" },
+        "edit-layout":  { "required": ["nextjs"], "mode": "one-of" },
+        "edit-service": { "required": ["nestjs"], "mode": "one-of" },
+        "edit-controller": { "required": ["nestjs"], "mode": "one-of" },
+        "edit-schema":  { "required": ["prisma"], "mode": "one-of" },
+        "edit-contract":{ "required": ["orpc", "zod"], "mode": "one-of" },
+        "edit-module":  { "required": ["nestjs"], "mode": "one-of" },
+        "edit-middleware":{ "required": ["nestjs"], "mode": "one-of" },
+        "edit-guard":   { "required": ["nestjs", "security"], "mode": "one-of" },
+        "edit-pipe":    { "required": ["nestjs", "zod"], "mode": "one-of" },
+        "edit-migration":{ "required": ["prisma"], "mode": "one-of" },
+        "edit-auth":    { "required": ["better-auth", "security"], "mode": "one-of" },
+        "edit-payment": { "required": ["payments", "fintech-domain", "compliance"], "mode": "one-of" },
+        "edit-ledger":  { "required": ["financial-ledger", "fintech-domain"], "mode": "one-of" },
+        "edit-security":{ "required": ["security", "enterprise-security"], "mode": "one-of" },
+        "edit-infrastructure":{ "required": ["enterprise-devops", "docker"], "mode": "one-of" },
+        "test":         { "required": ["vitest"], "mode": "one-of" },
+        "lint":         { "required": ["biome"], "mode": "one-of" }
+      }
+    },
+
+    "quality-gate": {
+      "description": "Quality gates antes de commit. Gating: lint → typecheck → build → test → coverage.",
+      "sequence": ["lint", "typecheck", "build", "test", "coverage"],
+      "minCoverage": 80
+    },
+
+    "knowledge-gate": {
+      "description": "Exige evidência de grounding (protocolo GROUND, execution-protocol.json) com nível de hierarquia adequado ao risco, antes de write/edit. Nível 3 = Repo/Architecture/Versions (não inclui Official Docs, nível 4 — ver knowledge-hierarchy.json para o porquê de não usar nível 4, que tornaria isto redundante com context7-gate). Fonte de verdade dos níveis: knowledge-hierarchy.json enforcement.minLevelByRisk.",
+      "minLevelByRisk": {
+        "LOW": 8,
+        "MEDIUM": 6,
+        "HIGH": 3,
+        "CRITICAL": 3
+      }
+    },
+
+    "blocking-gates": {
+      "description": "Gates que bloqueiam execução (action=block). Sempre bloqueiam independent do risk level.",
+      "conditions": [
+        "read-only tools (read, glob, grep, list, skill) — NUNCA bloqueados",
+        "tools de transformação (bash com lint/test/typecheck) — NUNCA bloqueados",
+        "write/edit com gateway=file e file é governance config — BLOQUEADO",
+        "write/edit com gateway=function e function é o proprio plugin — BLOQUEADO"
+      ]
+    }
+  }
+}

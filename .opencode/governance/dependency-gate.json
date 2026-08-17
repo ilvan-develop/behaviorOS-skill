@@ -1,0 +1,20 @@
+{
+  "version": "1.0.0",
+  "description": "Gate de governança de dependências (OAGE §39). Instalar um pacote novo requer justificação registada em audit antes da execução do comando.",
+  "enabled": true,
+  "patterns": [
+    "npm install *",
+    "npm i *",
+    "pnpm add *",
+    "yarn add *"
+  ],
+  "exemptPatterns": [
+    "* install",
+    "* install --frozen-lockfile",
+    "* i --frozen-lockfile"
+  ],
+  "requiredJustificationFields": ["package", "why", "alternativesConsidered", "license"],
+  "requiredAuditEvent": "dependency_justification",
+  "action": "ask",
+  "message": "Instalação de dependência requer justificação registada (evento 'dependency_justification' no audit trail) antes de prosseguir."
+}

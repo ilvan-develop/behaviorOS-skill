@@ -1,7 +1,10 @@
-# Lições Aprendidas
+# Lições Aprendidas — my-project
 
-## F0 - Fundação
+> **Projeto:** my-project
+> **Descrição:** Lições aprendidas durante desenvolvimento
 
-- opencode.json deve estar na raiz do projecto para enforce.ps1 funcionar
-- permissions-matrix.json deve usar formato `phases[].phase` para permission-guard.ps1
-- skills-loaded.json é obrigatório para skill-guard.ps1 (Regra 18)
+---
+
+## Lições
+
+(nenhuma lição aprendida ainda)

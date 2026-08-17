@@ -29,8 +29,9 @@ export function validateGovernance(governanceDir) {
     },
   };
 
-  // opencode.json goes to project root (parent of governance dir)
-  const projectRoot = join(governanceDir, '..');
+  // opencode.json goes to project root: targetDir/.opencode/governance -> targetDir is two
+  // levels up, not one (governanceDir's immediate parent is targetDir/.opencode).
+  const projectRoot = join(governanceDir, '..', '..');
   const opencodePath = join(projectRoot, 'opencode.json');
   
   if (!existsSync(opencodePath)) {
@@ -61,6 +62,19 @@ export function validateGovernance(governanceDir) {
   const optionalFiles = [
     'security-gates.json',
     'production-gate.json',
+    'anti-patterns.json',
+    'protected-resources.json',
+    'loop-detector.json',
+    'dependency-gate.json',
+    'truth-gate.json',
+    'reviewer-gate.json',
+    'mcp-registry.json',
+    'handoff-schema.json',
+    'definition-of-done.json',
+    'ci-gate.json',
+    'skill-gate-auto.json',
+    'context7-gate.json',
+    'version-pinning-gate.json',
   ];
 
   // Check required files
@@ -139,8 +153,6 @@ export function validateConfig(governanceDir, configName) {
     const content = readFileSync(filePath, 'utf8');
     const config = JSON.parse(content);
     
-    console.log('validateConfig called with:', configName, config);
-    
     // Add specific validation rules here
     switch (configName) {
       case 'opencode':
@@ -151,6 +163,12 @@ export function validateConfig(governanceDir, configName) {
         return validateSkillGate(config);
       case 'tool-gate':
         return validateToolGate(config);
+      case 'skill-gate-auto':
+        return validateSkillGateAuto(config);
+      case 'context7-gate':
+        return validateContext7Gate(config);
+      case 'version-pinning-gate':
+        return validateVersionPinningGate(config);
       default:
         return { valid: true };
     }
@@ -169,24 +187,17 @@ function validateOpenCodeConfig(config) {
     errors.push('Missing "project" field');
   }
   
-  if (!config.agents || typeof config.agents !== 'object') {
-    errors.push('Missing or invalid "agents" field');
-  }
-  
-  if (!config.governance || typeof config.governance !== 'object') {
-    errors.push('Missing or invalid "governance" field');
-  } else {
-    if (!config.governance.enabled) {
-      errors.push('Governance must be enabled');
-    }
+  // OpenCode's real schema (https://opencode.ai/config.json) uses the singular "agent" key
+  // — every template's opencode.json ships that way. Checking "agents" here would falsely
+  // fail every correctly-configured project.
+  if (!config.agent || typeof config.agent !== 'object') {
+    errors.push('Missing or invalid "agent" field');
   }
   
   const result = {
     valid: errors.length === 0,
     error: errors.join('; '),
   };
-  
-  console.log('validateOpenCodeConfig result:', result);
   
   return result;
 }
@@ -246,6 +257,74 @@ function validateToolGate(config) {
   
   if (!config.rules || !Array.isArray(config.rules)) {
     errors.push('Missing or invalid "rules" field');
+  }
+  
+  return {
+    valid: errors.length === 0,
+    error: errors.join('; '),
+  };
+}
+
+/**
+ * Validate skill-gate-auto.json configuration
+ */
+function validateSkillGateAuto(config) {
+  const errors = [];
+  
+  if (!config.requiredSkillsForPatterns || typeof config.requiredSkillsForPatterns !== 'object') {
+    errors.push('Missing or invalid "requiredSkillsForPatterns" field');
+  }
+  
+  if (!config.action || !['warn', 'block'].includes(config.action)) {
+    errors.push('Missing or invalid "action" field (must be "warn" or "block")');
+  }
+  
+  return {
+    valid: errors.length === 0,
+    error: errors.join('; '),
+  };
+}
+
+/**
+ * Validate context7-gate.json configuration
+ */
+function validateContext7Gate(config) {
+  const errors = [];
+  
+  if (!config.auditEvent || typeof config.auditEvent !== 'string') {
+    errors.push('Missing or invalid "auditEvent" field');
+  }
+  
+  if (!config.windowMinutes || typeof config.windowMinutes !== 'number') {
+    errors.push('Missing or invalid "windowMinutes" field');
+  }
+  
+  if (!config.action || !['warn', 'block', 'deny'].includes(config.action)) {
+    errors.push('Missing or invalid "action" field (must be "warn", "block", or "deny")');
+  }
+  
+  return {
+    valid: errors.length === 0,
+    error: errors.join('; '),
+  };
+}
+
+/**
+ * Validate version-pinning-gate.json configuration
+ */
+function validateVersionPinningGate(config) {
+  const errors = [];
+  
+  if (!config.auditEvent || typeof config.auditEvent !== 'string') {
+    errors.push('Missing or invalid "auditEvent" field');
+  }
+  
+  if (!config.windowMinutes || typeof config.windowMinutes !== 'number') {
+    errors.push('Missing or invalid "windowMinutes" field');
+  }
+  
+  if (!config.action || !['warn', 'block', 'deny'].includes(config.action)) {
+    errors.push('Missing or invalid "action" field (must be "warn", "block", or "deny")');
   }
   
   return {

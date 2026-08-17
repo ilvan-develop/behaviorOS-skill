@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     behaviorOS Enforcement Layer - Orquestrador central de validação
@@ -79,16 +79,16 @@ function Invoke-Guard {
     try {
         $result = & $Command
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "   ✓ $Name: PASS" -ForegroundColor Green
+            Write-Host "   ✓ ${Name}: PASS" -ForegroundColor Green
             return $true
         } else {
-            Write-Host "   ✗ $Name: FAIL" -ForegroundColor Red
+            Write-Host "   ✗ ${Name}: FAIL" -ForegroundColor Red
             $Script:FailedGuards += $Name
             $Script:ExitCode = 1
             return $false
         }
     } catch {
-        Write-Host "   ✗ $Name: ERROR - $_" -ForegroundColor Red
+        Write-Host "   ✗ ${Name}: ERROR - $_" -ForegroundColor Red
         $Script:FailedGuards += $Name
         $Script:ExitCode = 1
         return $false
@@ -117,7 +117,7 @@ Write-Host ""
 # Verificar se guards estão habilitados
 # ─────────────────────────────────────────────────────────
 
-$GovernanceDir = Join-Path $ProjectRoot ".opencode" "governance"
+$GovernanceDir = Join-Path (Join-Path $ProjectRoot ".opencode") "governance"
 $opencodeFile = Join-Path $ProjectRoot "opencode.json"
 
 if (-not (Test-Path $opencodeFile)) {
@@ -128,7 +128,7 @@ if (-not (Test-Path $opencodeFile)) {
 
 # Verificar se governance está habilitado
 try {
-    $opencode = Get-Content $opencodeFile -Raw | ConvertFrom-Json
+    $opencode = Get-Content $opencodeFile -Raw -Encoding UTF8 | ConvertFrom-Json
     if (-not $opencode.governance -or -not $opencode.governance.enabled) {
         Write-Host "[WARN] Governance desabilitada no opencode.json" -ForegroundColor Yellow
         exit 0
@@ -190,7 +190,9 @@ if (-not $SkipGuards) {
 if (Test-Path $AuditScript) {
     $target = if ($Command) { $Command } elseif ($File) { $File } else { "none" }
     $result = if ($Script:ExitCode -eq 0) { "PASS" } else { "BLOCKED" }
-    $gate = if ($Script:FailedGuards.Count -gt 0) { $Script:FailedGuards[0].ToLower() } else { "enforce" }
+    # FailedGuards holds display names ("State Guard", "Permission Guard", ...) but -Gate's
+    # ValidateSet expects the short key ("state", "permission", ...) — strip the suffix.
+    $gate = if ($Script:FailedGuards.Count -gt 0) { ($Script:FailedGuards[0] -replace ' Guard$', '').ToLower() } else { "enforce" }
     $message = if ($Script:FailedGuards.Count -gt 0) { "Failed: $($Script:FailedGuards -join ', ')" } else { "All gates passed" }
     
     & $AuditScript -Tool $Tool -File $target -Agent $Agent -Phase $Phase -Result $result -Gate $gate -Message $message

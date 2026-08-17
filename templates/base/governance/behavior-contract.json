@@ -1,0 +1,201 @@
+{
+  "version": "1.0.0",
+  "description": "BehaviorOS Behavior Contract — define o contrato de comportamento do agente por operação e risk level.",
+
+  "contracts": {
+    "read": {
+      "risk": "LOW",
+      "required": [],
+      "evidence": [],
+      "enforcement": "off",
+      "note": "Read-only tools are never blocked"
+    },
+    "lint": {
+      "risk": "LOW",
+      "required": [],
+      "evidence": [],
+      "enforcement": "off",
+      "note": "Quality tools bypass enforcement"
+    },
+    "test": {
+      "risk": "LOW",
+      "required": [],
+      "evidence": [],
+      "enforcement": "off",
+      "note": "Quality tools bypass enforcement"
+    },
+    "typecheck": {
+      "risk": "LOW",
+      "required": [],
+      "evidence": [],
+      "enforcement": "off",
+      "note": "Quality tools bypass enforcement"
+    },
+    "edit-readme": {
+      "risk": "LOW",
+      "required": [],
+      "evidence": [],
+      "enforcement": "off"
+    },
+    "edit-docs": {
+      "risk": "LOW",
+      "required": [],
+      "evidence": [],
+      "enforcement": "off"
+    },
+    "edit-test": {
+      "risk": "MEDIUM",
+      "required": [],
+      "evidence": [],
+      "enforcement": "off"
+    },
+    "edit-config": {
+      "risk": "MEDIUM",
+      "required": [],
+      "evidence": [],
+      "enforcement": "off"
+    },
+    "edit-component": {
+      "risk": "MEDIUM",
+      "required": ["react"],
+      "evidence": ["skill-loaded"],
+      "enforcement": "warn"
+    },
+    "edit-page": {
+      "risk": "MEDIUM",
+      "required": ["nextjs"],
+      "evidence": ["skill-loaded"],
+      "enforcement": "warn"
+    },
+    "edit-layout": {
+      "risk": "MEDIUM",
+      "required": ["nextjs"],
+      "evidence": ["skill-loaded"],
+      "enforcement": "warn"
+    },
+    "edit-service": {
+      "risk": "HIGH",
+      "required": ["nestjs"],
+      "evidence": ["context7-queried", "skill-loaded"],
+      "enforcement": "require"
+    },
+    "edit-controller": {
+      "risk": "HIGH",
+      "required": ["nestjs"],
+      "evidence": ["context7-queried", "skill-loaded"],
+      "enforcement": "require"
+    },
+    "edit-schema": {
+      "risk": "HIGH",
+      "required": ["prisma"],
+      "evidence": ["context7-queried", "skill-loaded"],
+      "enforcement": "require"
+    },
+    "edit-contract": {
+      "risk": "HIGH",
+      "required": ["orpc", "zod"],
+      "evidence": ["context7-queried", "skill-loaded"],
+      "enforcement": "require"
+    },
+    "edit-module": {
+      "risk": "HIGH",
+      "required": ["nestjs"],
+      "evidence": ["context7-queried", "skill-loaded"],
+      "enforcement": "require"
+    },
+    "edit-middleware": {
+      "risk": "HIGH",
+      "required": ["nestjs"],
+      "evidence": ["context7-queried", "skill-loaded"],
+      "enforcement": "require"
+    },
+    "edit-guard": {
+      "risk": "HIGH",
+      "required": ["nestjs", "security"],
+      "evidence": ["context7-queried", "skill-loaded"],
+      "enforcement": "require"
+    },
+    "edit-pipe": {
+      "risk": "HIGH",
+      "required": ["nestjs", "zod"],
+      "evidence": ["context7-queried", "skill-loaded"],
+      "enforcement": "require"
+    },
+    "edit-decorator": {
+      "risk": "HIGH",
+      "required": ["nestjs"],
+      "evidence": ["context7-queried", "skill-loaded"],
+      "enforcement": "require"
+    },
+    "edit-migration": {
+      "risk": "CRITICAL",
+      "required": ["prisma"],
+      "evidence": ["context7-queried", "skill-loaded", "schema-read"],
+      "enforcement": "require"
+    },
+    "edit-auth": {
+      "risk": "CRITICAL",
+      "required": ["better-auth", "security"],
+      "evidence": ["context7-queried", "skill-loaded"],
+      "enforcement": "require"
+    },
+    "edit-payment": {
+      "risk": "CRITICAL",
+      "required": ["payments", "fintech-domain"],
+      "evidence": ["context7-queried", "skill-loaded"],
+      "enforcement": "require"
+    },
+    "edit-ledger": {
+      "risk": "CRITICAL",
+      "required": ["financial-ledger", "fintech-domain"],
+      "evidence": ["context7-queried", "skill-loaded"],
+      "enforcement": "require"
+    },
+    "edit-security": {
+      "risk": "CRITICAL",
+      "required": ["security", "enterprise-security"],
+      "evidence": ["context7-queried", "skill-loaded"],
+      "enforcement": "require"
+    },
+    "edit-infrastructure": {
+      "risk": "CRITICAL",
+      "required": ["enterprise-devops"],
+      "evidence": ["context7-queried", "skill-loaded"],
+      "enforcement": "require"
+    },
+    "edit-environment": {
+      "risk": "CRITICAL",
+      "required": [],
+      "evidence": [],
+      "enforcement": "block",
+      "note": "Environment files should never be edited by AI agents"
+    },
+    "install-dependency": {
+      "risk": "HIGH",
+      "required": [],
+      "evidence": ["dependency-approved"],
+      "enforcement": "require"
+    },
+    "uninstall-dependency": {
+      "risk": "HIGH",
+      "required": [],
+      "evidence": ["dependency-approved"],
+      "enforcement": "require"
+    },
+    "git-commit": {
+      "risk": "MEDIUM",
+      "required": [],
+      "evidence": ["quality-checks-passed"],
+      "enforcement": "require"
+    }
+  },
+
+  "riskEscalation": {
+    "description": "When phase is critical, escalate risk one level (MEDIUM→HIGH, HIGH→CRITICAL). CRITICAL stays CRITICAL.",
+    "rules": {
+      "MEDIUM": "HIGH",
+      "HIGH": "CRITICAL",
+      "CRITICAL": "CRITICAL"
+    }
+  }
+}

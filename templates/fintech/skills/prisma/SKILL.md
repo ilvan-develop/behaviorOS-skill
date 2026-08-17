@@ -35,7 +35,8 @@ Prisma is a next-generation ORM for Node.js and TypeScript. It provides type-saf
 ```prisma
 // prisma/schema.prisma
 generator client {
-  provider        = "prisma-client-js"
+  provider        = "prisma-client"
+  output          = "../generated/prisma/client"
   previewFeatures = ["fullTextSearch", "metrics", "tracing", "multiSchema"]
   binaryTargets   = ["native", "rhel-openssl-1.0.x"]
 }
@@ -235,7 +236,7 @@ enum Plan {
 ```typescript
 // prisma/prisma.service.ts
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
-import { PrismaClient, Prisma, LogLevel } from '@prisma/client';
+import { PrismaClient, Prisma, LogLevel } from '../generated/prisma/client';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
@@ -555,7 +556,7 @@ npx prisma migrate deploy
 ### Seed Script
 ```typescript
 // prisma/seed.ts
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../generated/prisma/client';
 import { hash } from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -693,7 +694,7 @@ const payments = await prisma.payment.findMany({
 ### ❌ Seed Criando PrismaClient Próprio
 ```typescript
 // ❌ Não usa o proxy compartilhado
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../generated/prisma/client';
 const prisma = new PrismaClient();
 ```
 

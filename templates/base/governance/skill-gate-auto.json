@@ -1,0 +1,31 @@
+{
+  "version": "3.0.0",
+  "description": "Skill tracking enforcement automático. Mapeia extensões de arquivo para skills obrigatórias. SUPERSEDED by Behavior Resolution kernel (policy-resolver.json).",
+  "enabled": false,
+  "requiredSkillsForPatterns": {
+    "*.prisma": ["prisma"],
+    "*.service.ts": ["enterprise-backend", "enterprise-database"],
+    "*.controller.ts": ["enterprise-backend", "nestjs"],
+    "*.module.ts": ["nestjs"],
+    "*.component.tsx": ["react", "enterprise-frontend"],
+    "*.page.tsx": ["nextjs", "enterprise-frontend"],
+    "*.layout.tsx": ["nextjs", "enterprise-frontend"],
+    "*.test.ts": ["enterprise-qa"],
+    "*.spec.ts": ["enterprise-qa"],
+    "*.test.tsx": ["enterprise-qa", "react"],
+    "*.spec.tsx": ["enterprise-qa", "react"],
+    "*.gateway.ts": ["nestjs", "enterprise-backend"],
+    "*.middleware.ts": ["enterprise-backend"],
+    "*.guard.ts": ["enterprise-security"],
+    "*.pipe.ts": ["nestjs"],
+    "*.decorator.ts": ["nestjs"],
+    "*.schema.prisma": ["prisma"],
+    "tailwind.config.*": ["tailwind"],
+    "next.config.*": ["nextjs"],
+    "vitest.config.*": ["enterprise-qa"]
+  },
+  "skillTrackingFile": ".opencode/audit/skills-loaded.json",
+  "action": "off",
+  "message": "Skill obrigatória para este tipo de arquivo não foi carregada.",
+  "note": "Enforcement is now handled by the Behavior Resolution kernel in oage-enforce.js via policy-resolver.json"
+}

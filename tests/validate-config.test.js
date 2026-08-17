@@ -30,7 +30,7 @@ describe('behaviorOS Configuration Validator', () => {
   // Cleanup test directory
   function cleanupTestDir() {
     if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
+      rmSync(testDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
     }
   }
 
@@ -56,14 +56,15 @@ describe('behaviorOS Configuration Validator', () => {
 
     it('should pass for valid governance configuration', () => {
       setupTestDir();
-      
-      // Create required files
-      createTestFile('opencode.json', JSON.stringify({
+
+      // opencode.json lives at the project root (testDir), two levels up from
+      // governanceDir (testDir/.opencode/governance) — see core/validator.mjs.
+      writeFileSync(join(testDir, 'opencode.json'), JSON.stringify({
         project: 'test-project',
-        agents: {},
+        agent: {},
         governance: { enabled: true },
       }));
-      
+
       createTestFile('INSTRUCTIONS.md', '# Test Instructions');
       
       createTestFile('permissions-matrix.json', JSON.stringify({
@@ -103,8 +104,8 @@ describe('behaviorOS Configuration Validator', () => {
     it('should warn about missing optional files', () => {
       setupTestDir();
       
-      // Create only required files
-      createTestFile('opencode.json', JSON.stringify({ project: 'test' }));
+      // Create only required files (opencode.json lives at the project root)
+      writeFileSync(join(testDir, 'opencode.json'), JSON.stringify({ project: 'test' }));
       createTestFile('INSTRUCTIONS.md', '# Test');
       createTestFile('permissions-matrix.json', JSON.stringify({}));
       createTestFile('skill-gate.json', JSON.stringify({}));
@@ -127,7 +128,7 @@ describe('behaviorOS Configuration Validator', () => {
       
       createTestFile('opencode.json', JSON.stringify({
         project: 'test-project',
-        agents: { backend: {} },
+        agent: { backend: {} },
         governance: { enabled: true },
       }));
       
@@ -219,13 +220,17 @@ describe('behaviorOS Configuration Validator', () => {
           const config = JSON.parse(content);
 
           assert.ok(config.project, `${template}: Missing project field`);
-          assert.ok(config.agents, `${template}: Missing agents field`);
-          assert.ok(config.governance, `${template}: Missing governance field`);
-          assert.ok(config.governance.enabled !== undefined, `${template}: Missing governance.enabled`);
-          assert.ok(config.governance.parallelExecution !== undefined, `${template}: Missing governance.parallelExecution`);
-          assert.ok(config.governance.immutableRules, `${template}: Missing governance.immutableRules`);
-          assert.ok(Array.isArray(config.governance.immutableRules), `${template}: governance.immutableRules should be an array`);
-          assert.ok(config.governance.immutableRules.length >= 6, `${template}: governance.immutableRules should have at least 6 rules`);
+          assert.ok(config.agent, `${template}: Missing agent field`);
+          // opencode.json follows the real OpenCode config schema (project/description/skills/
+          // mcp/agent/permission/plugin) — it must NOT carry a "governance" key, that isn't
+          // part of the schema. Governance itself lives in .opencode/governance/*.json (see
+          // "should have all required governance files" above) and is enforced at runtime by
+          // .opencode/plugins/oage-enforce.js, not declared inline here. This used to assert
+          // the opposite (a legacy, pre-migration shape where governance was embedded in
+          // opencode.json); every template already matches the current schema, so keeping the
+          // old assertion just failed all 8 templates for a shape none of them use anymore.
+          assert.ok(!config.governance, `${template}: opencode.json must not have a "governance" key — that isn't part of the OpenCode config schema; see .opencode/governance/*.json instead`);
+          assert.ok(Array.isArray(config.plugin), `${template}: Missing plugin array`);
         });
 
         it('should have valid INSTRUCTIONS.md with immutable rules', () => {
@@ -274,16 +279,16 @@ describe('behaviorOS Configuration Validator', () => {
           const content = readFileSync(opencodePath, 'utf-8');
           const config = JSON.parse(content);
 
-          assert.ok(config.agents.orchestrator, `${template}: Missing orchestrator agent`);
-          assert.ok(config.agents.orchestrator.skills, `${template}: Missing orchestrator skills`);
-          assert.ok(Array.isArray(config.agents.orchestrator.skills), `${template}: orchestrator skills should be an array`);
-          assert.ok(config.agents.orchestrator.skills.length > 0, `${template}: orchestrator should have at least one skill`);
+          assert.ok(config.agent.orchestrator, `${template}: Missing orchestrator agent`);
+          assert.ok(config.agent.orchestrator.skills, `${template}: Missing orchestrator skills`);
+          assert.ok(Array.isArray(config.agent.orchestrator.skills), `${template}: orchestrator skills should be an array`);
+          assert.ok(config.agent.orchestrator.skills.length > 0, `${template}: orchestrator should have at least one skill`);
 
-          assert.ok(config.agents.backend, `${template}: Missing backend agent`);
-          assert.ok(config.agents.backend.skills, `${template}: Missing backend skills`);
+          assert.ok(config.agent.backend, `${template}: Missing backend agent`);
+          assert.ok(config.agent.backend.skills, `${template}: Missing backend skills`);
 
-          assert.ok(config.agents.frontend, `${template}: Missing frontend agent`);
-          assert.ok(config.agents.frontend.skills, `${template}: Missing frontend skills`);
+          assert.ok(config.agent.frontend, `${template}: Missing frontend agent`);
+          assert.ok(config.agent.frontend.skills, `${template}: Missing frontend skills`);
         });
 
         it('should have valid permissions-matrix.json', () => {
@@ -393,12 +398,14 @@ describe('behaviorOS Configuration Validator', () => {
             `${template}: Skills directory exists but missing enterprise-governance/SKILL.md`
           );
 
-          // Validate skill has required frontmatter
+          // Validate skill has required frontmatter. Headings in these files are numbered
+          // ("## 3. Anti-Patterns Cross-Cutting"), so match with an optional "N. " prefix
+          // instead of an exact substring.
           const content = readFileSync(governanceSkillPath, 'utf-8');
           assert.ok(content.includes('name: enterprise-governance'), `${template}: enterprise-governance missing name in frontmatter`);
           assert.ok(content.includes('description:'), `${template}: enterprise-governance missing description in frontmatter`);
-          assert.ok(content.includes('## Anti-Patterns Cross-Cutting'), `${template}: enterprise-governance missing anti-patterns section`);
-          assert.ok(content.includes('## Mapa de Referência'), `${template}: enterprise-governance missing reference map section`);
+          assert.ok(/## (?:\d+\.\s*)?Anti-Patterns Cross-Cutting/.test(content), `${template}: enterprise-governance missing anti-patterns section`);
+          assert.ok(/## (?:\d+\.\s*)?Mapa de Referência/.test(content), `${template}: enterprise-governance missing reference map section`);
         });
       });
     });

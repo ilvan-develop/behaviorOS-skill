@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     behaviorOS State Guard - Valida transições de estado
@@ -24,7 +24,7 @@ $ErrorActionPreference = "Stop"
 
 # Encontrar raiz do projeto
 $ProjectRoot = (Get-Location).Path
-$GovernanceDir = Join-Path $ProjectRoot ".opencode" "governance"
+$GovernanceDir = Join-Path (Join-Path $ProjectRoot ".opencode") "governance"
 $StateMachineFile = Join-Path $GovernanceDir "state-machine.json"
 
 # Verificar se state-machine.json existe
@@ -35,7 +35,7 @@ if (-not (Test-Path $StateMachineFile)) {
 
 # Ler state-machine.json
 try {
-    $stateMachine = Get-Content $StateMachineFile -Raw | ConvertFrom-Json
+    $stateMachine = Get-Content $StateMachineFile -Raw -Encoding UTF8 | ConvertFrom-Json
 } catch {
     Write-Host "[ERROR] Erro ao ler state-machine.json: $_" -ForegroundColor Red
     exit 1
@@ -60,7 +60,7 @@ if ($Phase -ne $currentState) {
     }
     
     # Registrar no audit
-    $auditScript = Join-Path $PSScriptRoot ".." "audit-logger.ps1"
+    $auditScript = Join-Path (Join-Path $PSScriptRoot "..") "audit-logger.ps1"
     if (Test-Path $auditScript) {
         & $auditScript -Tool "state" -File "phase-$Phase" -Agent "unknown" -Phase $Phase -Result "BLOCKED" -Gate "state" -Message "Not current phase"
     }
@@ -74,7 +74,7 @@ if (-not $phaseInfo) {
     Write-Host "[BLOCKED] Fase $Phase não encontrada no state-machine" -ForegroundColor Red
     
     # Registrar no audit
-    $auditScript = Join-Path $PSScriptRoot ".." "audit-logger.ps1"
+    $auditScript = Join-Path (Join-Path $PSScriptRoot "..") "audit-logger.ps1"
     if (Test-Path $auditScript) {
         & $auditScript -Tool "state" -File "phase-$Phase" -Agent "unknown" -Phase $Phase -Result "BLOCKED" -Gate "state" -Message "Phase not found"
     }
@@ -88,7 +88,7 @@ if ($phaseInfo.status -eq "failed") {
     Write-Host "   Resetar a fase antes de tentar novamente" -ForegroundColor Yellow
     
     # Registrar no audit
-    $auditScript = Join-Path $PSScriptRoot ".." "audit-logger.ps1"
+    $auditScript = Join-Path (Join-Path $PSScriptRoot "..") "audit-logger.ps1"
     if (Test-Path $auditScript) {
         & $auditScript -Tool "state" -File "phase-$Phase" -Agent "unknown" -Phase $Phase -Result "BLOCKED" -Gate "state" -Message "Phase in failed state"
     }
@@ -101,13 +101,14 @@ if ($phaseInfo.isCritical -and $phaseInfo.status -eq "pending") {
     Write-Host "[ASK] Fase crítica $Phase - requer aprovação humana" -ForegroundColor Yellow
     
     # Registrar no audit
-    $auditScript = Join-Path $PSScriptRoot ".." "audit-logger.ps1"
+    $auditScript = Join-Path (Join-Path $PSScriptRoot "..") "audit-logger.ps1"
     if (Test-Path $auditScript) {
         & $auditScript -Tool "state" -File "phase-$Phase" -Agent "unknown" -Phase $Phase -Result "ASK" -Gate "state" -Message "Critical phase requires approval"
     }
     
-    # Por agora, permitir (em implementação futura, pausar para aprovação)
-    Write-Host "   [PERMITIDO] Continuando..." -ForegroundColor Green
+    # Bloquear execucao - fase critica requer aprovacao
+    Write-Host "   [BLOCKED] Execucao bloqueada - fase critica requer aprovacao humana" -ForegroundColor Red
+    exit 1
 }
 
 Write-Host "[PASS] Fase $Phase é a fase atual" -ForegroundColor Green

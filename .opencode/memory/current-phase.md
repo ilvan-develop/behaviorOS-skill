@@ -1,8 +1,11 @@
-# Estado da Fase Actual
+# Fase Atual — my-project
 
-## Fase Actual: F0 (Fundação)
+> **Projeto:** my-project
+> **Descrição:** Estado da fase atual
 
-- Estado: pending
-- Próximas fases: F1 (IAM + Tenants)
-- Crítica: Não
-- Autonomia: L1 (Routine)
+---
+
+## Estado
+
+**Fase:** F0 - Foundation
+**Status:** Pendente

@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     behaviorOS Audit Logger - Registra ações no audit trail
@@ -34,7 +34,10 @@
 
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet("write", "edit", "bash", "read", "skill-load")]
+    # "permission"/"state" aren't real tool invocations — the guard scripts pass them here to
+    # log which gate produced a phase/permission-level decision that isn't tied to one write/
+    # edit/bash/read/skill-load call (see scripts/guards/permission-guard.ps1 and state-guard.ps1).
+    [ValidateSet("write", "edit", "bash", "read", "skill-load", "permission", "state")]
     [string]$Tool,
 
     [Parameter(Mandatory=$true)]
@@ -63,8 +66,8 @@ $ErrorActionPreference = "Stop"
 
 # Encontrar raiz do projeto
 $ProjectRoot = (Get-Location).Path
-$GovernanceDir = Join-Path $ProjectRoot ".opencode" "governance"
-$AuditDir = Join-Path $ProjectRoot ".opencode" "audit"
+$GovernanceDir = Join-Path (Join-Path $ProjectRoot ".opencode") "governance"
+$AuditDir = Join-Path (Join-Path $ProjectRoot ".opencode") "audit"
 $LogFile = Join-Path $AuditDir "audit.log"
 $JsonLogFile = Join-Path $AuditDir "audit.jsonl"
 
@@ -90,14 +93,26 @@ $entry = @{
 # Converter para JSON
 $json = $entry | ConvertTo-Json -Compress
 
+# Windows PowerShell 5.1's `-Encoding UTF8` writes a BOM on file creation, which breaks
+# Node's JSON.parse (scripts/oage-metrics.mjs, .opencode/plugins/*.mjs read audit.jsonl).
+function Add-Utf8NoBomLine {
+    param([string]$Path, [string]$Line)
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    if (-not (Test-Path $Path)) {
+        [System.IO.File]::WriteAllText($Path, "$Line`n", $utf8NoBom)
+    } else {
+        [System.IO.File]::AppendAllText($Path, "$Line`n", $utf8NoBom)
+    }
+}
+
 # Escrever no log JSONL
-Add-Content -Path $JsonLogFile -Value $json
+Add-Utf8NoBomLine -Path $JsonLogFile -Line $json
 
 # Escrever no log legível
 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 $logEntry = "$timestamp | $Phase | $Agent | $Tool | $File | $Gate | $Result"
 if ($Message) { $logEntry += " | $Message" }
-Add-Content -Path $LogFile -Value $logEntry
+Add-Utf8NoBomLine -Path $LogFile -Line $logEntry
 
 # Saída console
 $color = switch ($Result) {

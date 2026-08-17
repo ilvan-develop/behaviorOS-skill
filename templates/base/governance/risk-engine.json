@@ -1,0 +1,195 @@
+{
+  "version": "1.0.0",
+  "description": "BehaviorOS Risk Engine — calcula risk level por propriedades da fase, operação e recurso. Não usa IDs de fase hardcoded.",
+
+  "riskLevels": {
+    "LOW":      { "label": "Low Risk",      "color": "green",  "minConfidence": 70 },
+    "MEDIUM":   { "label": "Medium Risk",   "color": "yellow", "minConfidence": 80 },
+    "HIGH":     { "label": "High Risk",     "color": "orange", "minConfidence": 90 },
+    "CRITICAL": { "label": "Critical Risk",  "color": "red",    "minConfidence": 95 }
+  },
+
+  "operationRisk": {
+    "read":                "LOW",
+    "lint":                "LOW",
+    "typecheck":           "LOW",
+    "test":                "LOW",
+    "edit-readme":         "LOW",
+    "edit-docs":           "LOW",
+    "edit-config":         "MEDIUM",
+    "edit-test":           "MEDIUM",
+    "edit-component":      "MEDIUM",
+    "edit-layout":         "MEDIUM",
+    "edit-page":           "MEDIUM",
+    "edit-service":        "HIGH",
+    "edit-controller":     "HIGH",
+    "edit-schema":         "HIGH",
+    "edit-contract":       "HIGH",
+    "edit-module":         "HIGH",
+    "edit-middleware":     "HIGH",
+    "edit-guard":          "HIGH",
+    "edit-pipe":           "HIGH",
+    "edit-decorator":      "HIGH",
+    "edit-migration":      "CRITICAL",
+    "edit-auth":           "CRITICAL",
+    "edit-payment":        "CRITICAL",
+    "edit-ledger":         "CRITICAL",
+    "edit-security":       "CRITICAL",
+    "edit-infrastructure": "CRITICAL",
+    "edit-environment":    "CRITICAL",
+    "install-dependency":  "HIGH",
+    "uninstall-dependency":"HIGH"
+  },
+
+  "fileRisk": {
+    "**/README*":              "LOW",
+    "**/docs/**":              "LOW",
+    "**/*.test.*":             "LOW",
+    "**/*.spec.*":             "LOW",
+    "**/*.stories.*":          "LOW",
+    "**/*.config.*":           "MEDIUM",
+    "**/*.component.*":        "MEDIUM",
+    "**/*.page.*":             "MEDIUM",
+    "**/*.layout.*":           "MEDIUM",
+    "**/*.service.*":          "HIGH",
+    "**/*.controller.*":       "HIGH",
+    "**/*.module.*":           "HIGH",
+    "**/*.middleware.*":       "HIGH",
+    "**/*.guard.*":            "HIGH",
+    "**/*.pipe.*":             "HIGH",
+    "**/*.decorator.*":        "HIGH",
+    "**/*.contract.*":         "HIGH",
+    "**/schema.prisma":        "HIGH",
+    "**/*.migration.*":        "CRITICAL",
+    "**/migrations/**":        "CRITICAL",
+    "**/payment*/**":          "CRITICAL",
+    "**/auth/**":              "CRITICAL",
+    "**/ledger/**":            "CRITICAL",
+    "**/security/**":          "CRITICAL",
+    "**/infrastructure/**":    "CRITICAL",
+    "**/.env*":                "CRITICAL",
+    "**/docker*":              "CRITICAL",
+    "**/Dockerfile*":          "CRITICAL"
+  },
+
+  "domainRisk": {
+    "documentation":  "LOW",
+    "testing":        "LOW",
+    "ui":             "MEDIUM",
+    "design":         "MEDIUM",
+    "api":            "HIGH",
+    "database":       "HIGH",
+    "business-logic": "HIGH",
+    "auth":           "CRITICAL",
+    "payment":        "CRITICAL",
+    "ledger":         "CRITICAL",
+    "security":       "CRITICAL",
+    "infrastructure": "CRITICAL",
+    "compliance":     "CRITICAL"
+  },
+
+  "phaseRiskRules": {
+    "description": "Risk é calculado pelas propriedades da fase em state-machine.json, não por IDs hardcoded.",
+    "rules": [
+      {
+        "match": { "isCritical": false, "position": "first" },
+        "baseRisk": "LOW",
+        "enforcement": {
+          "context7": "off",
+          "truth": "off",
+          "dependency": "off",
+          "skills": "off",
+          "tests": "off",
+          "security": "warn"
+        }
+      },
+      {
+        "match": { "isCritical": false, "position": "middle" },
+        "baseRisk": "MEDIUM",
+        "enforcement": {
+          "context7": "warn",
+          "truth": "off",
+          "dependency": "warn",
+          "skills": "warn",
+          "tests": "warn",
+          "security": "warn"
+        }
+      },
+      {
+        "match": { "isCritical": false, "position": "last" },
+        "baseRisk": "MEDIUM",
+        "enforcement": {
+          "context7": "warn",
+          "truth": "warn",
+          "dependency": "warn",
+          "skills": "warn",
+          "tests": "require",
+          "security": "require"
+        }
+      },
+      {
+        "match": { "isCritical": true, "position": "first" },
+        "baseRisk": "HIGH",
+        "enforcement": {
+          "context7": "require",
+          "truth": "require",
+          "dependency": "require",
+          "skills": "require",
+          "tests": "require",
+          "security": "require"
+        }
+      },
+      {
+        "match": { "isCritical": true, "position": "middle" },
+        "baseRisk": "HIGH",
+        "enforcement": {
+          "context7": "require",
+          "truth": "require",
+          "dependency": "require",
+          "skills": "require",
+          "tests": "require",
+          "security": "require"
+        }
+      },
+      {
+        "match": { "isCritical": true, "position": "last" },
+        "baseRisk": "CRITICAL",
+        "enforcement": {
+          "context7": "require",
+          "truth": "require",
+          "dependency": "require",
+          "skills": "require",
+          "tests": "block",
+          "security": "block"
+        }
+      }
+    ]
+  },
+
+  "technologyDetection": {
+    "description": "Reference/documentation only — NOT read by any plugin (verified: no reference to 'technologyDetection' anywhere in .opencode/plugins). The live, runtime-wired implementation is .opencode/plugins/lib/skill-engine.js (KNOWN_TECHNOLOGIES + detectTechnologies/resolveSkills), used by oage-enforce.js PHASE 6c as the fallback skill detector for HIGH/CRITICAL operations that have no explicit rule in policy-resolver.json. Keep this block in sync with skill-engine.js manually if you rely on it for documentation purposes; it does not affect enforcement.",
+    "rules": [
+      { "match": { "files": ["*.prisma", "*.schema.prisma"] }, "technologies": ["prisma"], "intents": ["schema", "migration", "query", "relation"] },
+      { "match": { "files": ["*.controller.ts"] }, "technologies": ["nestjs"], "intents": ["api-layer", "routing"] },
+      { "match": { "files": ["*.service.ts"] }, "technologies": ["nestjs"], "intents": ["business-logic"] },
+      { "match": { "files": ["*.module.ts"] }, "technologies": ["nestjs"], "intents": ["module-structure"] },
+      { "match": { "files": ["*.component.tsx"] }, "technologies": ["react"], "intents": ["ui-component"] },
+      { "match": { "files": ["*.page.tsx"] }, "technologies": ["nextjs", "react"], "intents": ["page", "routing"] },
+      { "match": { "files": ["*.layout.tsx"] }, "technologies": ["nextjs", "react"], "intents": ["layout"] },
+      { "match": { "files": ["*.test.ts", "*.spec.ts"] }, "technologies": ["vitest"], "intents": ["testing"] },
+      { "match": { "files": ["*.test.tsx", "*.spec.tsx"] }, "technologies": ["vitest", "react"], "intents": ["testing"] },
+      { "match": { "files": ["*.guard.ts"] }, "technologies": ["nestjs"], "intents": ["security", "auth"] },
+      { "match": { "files": ["*.pipe.ts"] }, "technologies": ["nestjs"], "intents": ["validation"] },
+      { "match": { "files": ["*.middleware.ts"] }, "technologies": ["nestjs"], "intents": ["middleware"] },
+      { "match": { "files": ["*.decorator.ts"] }, "technologies": ["nestjs"], "intents": ["decorator"] },
+      { "match": { "files": ["tailwind.config.*"] }, "technologies": ["tailwind"], "intents": ["styling"] },
+      { "match": { "files": ["next.config.*"] }, "technologies": ["nextjs"], "intents": ["configuration"] },
+      { "match": { "files": ["vitest.config.*"] }, "technologies": ["vitest"], "intents": ["testing"] },
+      { "match": { "content": "from ['\"]better-auth" }, "technologies": ["better-auth"], "intents": ["auth"] },
+      { "match": { "content": "from ['\"]@prisma/client" }, "technologies": ["prisma"], "intents": ["database"] },
+      { "match": { "content": "from ['\"]@nestjs/" }, "technologies": ["nestjs"], "intents": ["api-layer"] },
+      { "match": { "content": "from ['\"]react['\"]" }, "technologies": ["react"], "intents": ["ui"] },
+      { "match": { "content": "from ['\"]next/" }, "technologies": ["nextjs"], "intents": ["routing"] }
+    ]
+  }
+}

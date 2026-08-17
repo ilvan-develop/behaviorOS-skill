@@ -54,41 +54,25 @@ opencode skill add behaviorOS
 
 ```
 your-project/
-├── AGENTS.md                         # Agent roles and governance rules
+├── AGENTS.md                         # Agent roles (only if the template ships one)
 ├── opencode.json                     # Central configuration
-├── scripts/                          # Governance scripts
-│   ├── agent-loop.ps1                # Main orchestrator loop
-│   ├── audit-logger.ps1              # Audit logging
-│   ├── enforce.ps1                   # Enforcement script
-│   ├── gates.ps1                     # Gate checks
-│   ├── run-pipeline.ps1              # Pipeline runner
-│   ├── skill-tracker.ps1             # Skill tracking
-│   ├── state-manager.ps1             # State management
-│   ├── validate.mjs                  # Configuration validator
+├── .github/workflows/oage-ci.yml     # CI re-validates gates independent of agent claims
+├── scripts/                          # Governance scripts + audit-event.mjs, handoff.mjs,
+│   │                                 # evidence-check.mjs, reviewer-check.mjs, oage-metrics.mjs, lint.mjs
 │   └── guards/
-│       ├── permission-guard.ps1      # Permission checks
-│       ├── skill-guard.ps1           # Skill validation
-│       ├── state-guard.ps1           # State validation
-│       └── tool-guard.ps1            # Tool validation
 └── .opencode/
-    ├── governance/
-    │   ├── INSTRUCTIONS.md           # Absolute rules
-    │   ├── permissions-matrix.json   # Permission matrix
-    │   ├── skill-gate.json           # Skill validation
-    │   ├── tool-gate.json            # Tool validation
-    │   ├── state-machine.json        # Orchestrator lifecycle
-    │   ├── memory.json               # Memory configuration
-    │   ├── audit.json                # Audit configuration
-    │   ├── security-gates.json       # Security validations
-    │   └── production-gate.json      # Production readiness
+    ├── governance/                   # INSTRUCTIONS.md, gate configs + shared cross-cutting
+    │   │                             # policy: anti-patterns, protected-resources, loop-detector,
+    │   │                             # dependency-gate, truth-gate, reviewer-gate, mcp-registry,
+    │   │                             # handoff-schema, definition-of-done, ci-gate
+    ├── plugins/                      # oage-enforce.js + oage-audit.js — runtime enforcement
+    ├── commands/                     # /oage-doctor, /oage-audit, /oage-review, /oage-research, /oage-release
     ├── memory/
-    │   ├── decisions.md
-    │   ├── patterns.md
-    │   ├── learnings.md
-    │   ├── current-phase.md
-    │   └── scope-history.md
     └── audit/
 ```
+
+Full tree with descriptions: [GETTING-STARTED.md](GETTING-STARTED.md). Integrating into an
+**existing** codebase (not starting from a template): [INTEGRATION.md](INTEGRATION.md).
 
 ## Next Steps
 

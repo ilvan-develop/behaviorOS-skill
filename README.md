@@ -3,7 +3,7 @@
 > Autonomous Development Governance System
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/ilvan-develop/behaviorOS-skill)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/ilvan-develop/behaviorOS-skill)
 
 behaviorOS is a governance system for autonomous software development. It enables AI agents to work independently while maintaining control through configurable gates, permissions, and audit trails.
 
@@ -16,7 +16,15 @@ behaviorOS is a governance system for autonomous software development. It enable
 - **Permission matrix** — Defines what agents can do
 - **State machine** — Manages orchestrator lifecycle
 - **Memory** — Maintains context between phases
-- **Audit trail** — Records all actions
+- **Audit trail** — Records all actions automatically via runtime plugins, not just on request
+- **10 runtime-enforced gates** — `.opencode/plugins/oage-enforce.js` blocks on every `tool.execute.before` call: protected resources, anti-patterns, dependency gate, truth gate, loop detection, skill tracking, context7 check, quality gates, agent loop flow, version pinning
+- **Automatic audit trail** — `.opencode/plugins/oage-audit.js` logs every tool call AND detects gate-specific events (context7 queries, skill loads, version checks, quality checks)
+- **Anti-pattern library** — 29 regex + manual anti-patterns across architecture/database/api/security/testing/git/monorepo/typescript/react/nextjs/ci-cd/ux/ai-agents
+- **Truth gate** — critical files (schemas, migrations, payments, auth) require a declared confidence >= threshold before write
+- **Independent reviewer gate** — critical phases cannot be marked complete without review by a different agent than the implementer
+- **Evidence-based completion** — phases require a recorded evidence file (tests, build, lint results) before "completed"
+- **Structured handoffs** — `scripts/handoff.mjs` generates FROM/TO/CONTEXT/NEXT_ACTION docs between agents
+- **CI as final authority** — installable `.github/workflows/oage-ci.yml` re-validates policy, secrets, and quality gates independent of what an agent claims
 - **Compliance** — Supports regulatory requirements (AGT, SAF-T, LGPD, PCI-DSS, HIPAA)
 - **8 pre-configured templates** — fintech, saas-b2b, saas-b2c, ecommerce, marketplace, healthcare, education, custom
 
@@ -97,24 +105,43 @@ Each template includes immutable rules that all agents must follow:
 
 ### Governance Files
 
-Each template includes 10 governance files:
+Each template includes its own governance files, plus a set of cross-cutting OAGE files
+shared by every template (`templates/base/governance/`) that `core/generator.mjs` copies
+into every install automatically:
 
 ```
 template-name/
 ├── blueprint/
 │   └── README.md
 └── governance/
-    ├── opencode.json            # Central configuration
-    ├── INSTRUCTIONS.md          # Absolute rules
+    ├── opencode.json            # Central configuration (schema-valid, no governance key)
+    ├── INSTRUCTIONS.md          # Absolute rules (+ OAGE rules 20-27 appended at install)
     ├── permissions-matrix.json  # Permission matrix
-    ├── skill-gate.json          # Skill validation
+    ├── skill-gate.json          # Skill validation (phase-based)
+    ├── skill-gate-auto.json     # Skill validation (file-extension-based, used by plugin)
     ├── tool-gate.json           # Tool validation
     ├── state-machine.json       # Orchestrator lifecycle
     ├── memory.json              # Memory configuration
     ├── audit.json               # Audit configuration
     ├── security-gates.json      # Security validations
-    └── production-gate.json     # Production readiness
+    ├── production-gate.json     # Production readiness
+    ├── anti-patterns.json       # shared — anti-pattern library (29 patterns)
+    ├── protected-resources.json # shared — .env/secrets/keys deny-list
+    ├── loop-detector.json       # shared — repeated-action thresholds
+    ├── dependency-gate.json     # shared — dependency justification
+    ├── truth-gate.json          # shared — confidence threshold for critical files
+    ├── context7-gate.json       # shared — context7 requirement config
+    ├── version-pinning-gate.json# shared — version pinning enforcement
+    ├── reviewer-gate.json       # shared — independent review requirement
+    ├── mcp-registry.json        # shared — registered MCP servers
+    ├── handoff-schema.json      # shared — agent handoff schema
+    ├── definition-of-done.json  # shared — evidence required to complete a phase
+    └── ci-gate.json             # shared — required CI checks
 ```
+
+Installs also receive `.opencode/plugins/` (the runtime enforcement plugins),
+`.opencode/commands/` (`/oage-doctor`, `/oage-audit`, `/oage-review`, `/oage-research`,
+`/oage-release`), and `.github/workflows/oage-ci.yml`.
 
 ## How It Works
 
@@ -195,9 +222,10 @@ node scripts/validate.mjs --template=fintech
 ## Documentation
 
 - [Getting Started](docs/GETTING-STARTED.md)
+- [Quick Start](docs/QUICKSTART.md)
+- [Integration Guide](docs/INTEGRATION.md) — adding behaviorOS to an **existing** project
 - [Templates Guide](docs/TEMPLATES.md)
 - [Customization](docs/CUSTOMIZATION.md)
-- [Quick Start](docs/QUICKSTART.md)
 - [Contributing](docs/CONTRIBUTING.md)
 
 ## Contributing

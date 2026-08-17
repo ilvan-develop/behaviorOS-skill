@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "description": "Registo de servidores MCP e respectivo risco (OAGE §42). Todo MCP usado pelo projeto deve estar listado aqui.",
+  "policy": {
+    "requireRegistration": true,
+    "unregisteredServerAction": "deny",
+    "newServerRequiresApproval": true
+  },
+  "servers": [
+    {
+      "name": "context7",
+      "owner": "platform",
+      "purpose": "Consulta de documentação oficial e actualizada de bibliotecas/frameworks antes da implementação",
+      "tools": ["resolve-library-id", "query-docs"],
+      "permissions": "read-only",
+      "dataAccess": "documentação pública de bibliotecas",
+      "networkAccess": "externo (mcp.context7.com)",
+      "risk": "low",
+      "approval": "none",
+      "mandatory": true
+    }
+  ]
+}

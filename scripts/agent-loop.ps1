@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     behaviorOS Agent Loop - Orquestrador principal multi-fase
@@ -104,7 +104,19 @@ function Write-Log {
     }
     Write-Host $logEntry -ForegroundColor $color
     if (-not $DryRun -and (Test-Path $AuditLogFile)) {
-        Add-Content -Path $AuditLogFile -Value $logEntry -ErrorAction SilentlyContinue
+        try { Add-Utf8NoBomLine -Path $AuditLogFile -Line $logEntry } catch { }
+    }
+}
+
+# Windows PowerShell 5.1's `Add-Content -Encoding UTF8` writes a BOM on file creation, which
+# breaks Node's JSON.parse (scripts/oage-metrics.mjs, .opencode/plugins/*.mjs read *.jsonl).
+function Add-Utf8NoBomLine {
+    param([string]$Path, [string]$Line)
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    if (-not (Test-Path $Path)) {
+        [System.IO.File]::WriteAllText($Path, "$Line`n", $utf8NoBom)
+    } else {
+        [System.IO.File]::AppendAllText($Path, "$Line`n", $utf8NoBom)
     }
 }
 
@@ -112,7 +124,7 @@ function Write-Jsonl {
     param([string]$Path, $Object)
     if (-not $DryRun) {
         $json = $Object | ConvertTo-Json -Compress
-        Add-Content -Path $Path -Value $json -ErrorAction SilentlyContinue
+        try { Add-Utf8NoBomLine -Path $Path -Line $json } catch { }
     }
 }
 
@@ -121,13 +133,21 @@ function Read-JsonFile {
     if (-not (Test-Path $Path)) {
         throw "Ficheiro nao encontrado: $Path"
     }
-    return Get-Content $Path -Raw | ConvertFrom-Json
+    return Get-Content $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+}
+
+# Windows PowerShell 5.1's `Set-Content -Encoding UTF8` writes a BOM, which breaks Node's
+# JSON.parse (scripts/validate.mjs, scripts/lint.mjs, core/validator.mjs, .opencode/plugins/).
+function Set-Utf8NoBom {
+    param([string]$Path, [string]$Content)
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($Path, $Content, $utf8NoBom)
 }
 
 function Write-JsonFile {
     param([string]$Path, $Object)
     if (-not $DryRun) {
-        $Object | ConvertTo-Json -Depth 10 | Set-Content $Path
+        Set-Utf8NoBom -Path $Path -Content ($Object | ConvertTo-Json -Depth 10)
     }
 }
 
@@ -160,7 +180,7 @@ function Update-Memory {
     param([string]$Section, [string]$Content)
     if (-not $DryRun) {
         $memoryFile = Join-Path $MemoryDir "$Section.md"
-        Set-Content -Path $memoryFile -Value $Content -ErrorAction SilentlyContinue
+        try { Set-Utf8NoBom -Path $memoryFile -Content $Content } catch { }
     }
 }
 
@@ -218,7 +238,7 @@ if ($Reset) {
                     default { "# Conteudo`n`nConteudo vazio.`n" }
                 }
                 if (-not $DryRun) {
-                    Set-Content -Path $memoryFile -Value $content
+                    Set-Utf8NoBom -Path $memoryFile -Content $content
                 }
             }
         }
@@ -455,14 +475,15 @@ foreach ($currentPhase in $phasesToRun) {
     $gatesPassed = $true
     if (Test-Path $GatesScript) {
         try {
-            $gateResult = & $GatesScript -Phase $currentPhase
-            $gatesPassed = $gateResult -eq 0
+            & $GatesScript -Phase $currentPhase
+            $gatesPassed = $LASTEXITCODE -eq 0
         } catch {
             Write-Log "Erro ao executar gates: $_" "ERROR"
             $gatesPassed = $false
         }
     } else {
-        Write-Log "gates.ps1 nao encontrado - simulando gates" "WARN"
+        Write-Log "gates.ps1 nao encontrado - gates NAO executados" "ERROR"
+        $gatesPassed = $false
     }
 
     if (-not $gatesPassed) {

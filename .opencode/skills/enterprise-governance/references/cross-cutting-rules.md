@@ -1,4 +1,4 @@
-# Cross-Cutting Rules - {{PROJECT_NAME}}
+# Cross-Cutting Rules - my-project
 
 Mapa de regras que afetam múltiplas skills.
 

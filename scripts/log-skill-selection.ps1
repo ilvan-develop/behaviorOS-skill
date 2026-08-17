@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Log skill selection events to audit trail.
@@ -50,7 +50,7 @@ $ErrorActionPreference = "Stop"
 
 # Configuration - find project root
 $ProjectRoot = (Get-Location).Path
-$AuditDir = Join-Path $ProjectRoot ".opencode" "audit"
+$AuditDir = Join-Path (Join-Path $ProjectRoot ".opencode") "audit"
 $LogFile = Join-Path $AuditDir "skill-selections.log"
 
 # Ensure audit directory exists
@@ -69,9 +69,15 @@ $entry = @{
     result = $Result
 }
 
-# Convert to JSON and append
+# Convert to JSON and append (avoid Add-Content -Encoding UTF8's BOM-on-create, which would
+# break Node's JSON.parse on the first line — see scripts/oage-metrics.mjs)
 $json = $entry | ConvertTo-Json -Compress
-Add-Content -Path $LogFile -Value $json
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+if (-not (Test-Path $LogFile)) {
+    [System.IO.File]::WriteAllText($LogFile, "$json`n", $utf8NoBom)
+} else {
+    [System.IO.File]::AppendAllText($LogFile, "$json`n", $utf8NoBom)
+}
 
 # Console output for visibility
 Write-Host "[SKILL-LOAD] skill=$Skill agent=$Agent phase=$Phase result=$Result" -ForegroundColor Cyan

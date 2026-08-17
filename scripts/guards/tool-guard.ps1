@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     behaviorOS Tool Guard - Valida tool patterns antes de execução
@@ -39,7 +39,7 @@ $ErrorActionPreference = "Stop"
 
 # Encontrar raiz do projeto
 $ProjectRoot = (Get-Location).Path
-$GovernanceDir = Join-Path $ProjectRoot ".opencode" "governance"
+$GovernanceDir = Join-Path (Join-Path $ProjectRoot ".opencode") "governance"
 $ToolGateFile = Join-Path $GovernanceDir "tool-gate.json"
 
 # Verificar se tool-gate.json existe
@@ -50,7 +50,7 @@ if (-not (Test-Path $ToolGateFile)) {
 
 # Ler tool-gate.json
 try {
-    $toolGate = Get-Content $ToolGateFile -Raw | ConvertFrom-Json
+    $toolGate = Get-Content $ToolGateFile -Raw -Encoding UTF8 | ConvertFrom-Json
 } catch {
     Write-Host "[ERROR] Erro ao ler tool-gate.json: $_" -ForegroundColor Red
     exit 1
@@ -140,14 +140,15 @@ foreach ($rule in $toolGate.rules) {
                 }
                 
                 # Registrar ask no audit
-                $auditScript = Join-Path $PSScriptRoot ".." "audit-logger.ps1"
+                $auditScript = Join-Path (Join-Path $PSScriptRoot "..") "audit-logger.ps1"
                 if (Test-Path $auditScript) {
                     $target = if ($Command) { $Command } else { $File }
                     & $auditScript -Tool $Tool -File $target -Agent "unknown" -Phase "unknown" -Result "ASK" -Gate "tool" -Message "Rule: $($rule.id)"
                 }
                 
-                # Por agora, permitir (em implementação futura, pausar para aprovação)
-                Write-Host "   [PERMITIDO] Continuando..." -ForegroundColor Green
+                # Bloquear execucao - aprovacao requerida
+                Write-Host "   [BLOCKED] Execucao bloqueada - aprovacao requerida" -ForegroundColor Red
+                exit 1
             }
             "allow" {
                 Write-Host "[PASS] Ação permitida pela regra: $($rule.id)" -ForegroundColor Green
@@ -161,13 +162,13 @@ foreach ($rule in $toolGate.rules) {
 if ($toolGate.globalRules -and $toolGate.globalRules.forbiddenPatterns) {
     foreach ($forbidden in $toolGate.globalRules.forbiddenPatterns) {
         if ($File -and (Test-Path $File)) {
-            $content = Get-Content $File -Raw -ErrorAction SilentlyContinue
+            $content = Get-Content $File -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
             if ($content -and $content -match $forbidden.pattern) {
                 Write-Host "[BLOCKED] Padrão proibido encontrado: $($forbidden.message)" -ForegroundColor Red
                 Write-Host "   Pattern: $($forbidden.pattern)" -ForegroundColor Red
                 
                 # Registrar no audit
-                $auditScript = Join-Path $PSScriptRoot ".." "audit-logger.ps1"
+                $auditScript = Join-Path (Join-Path $PSScriptRoot "..") "audit-logger.ps1"
                 if (Test-Path $auditScript) {
                     & $auditScript -Tool $Tool -File $File -Agent "unknown" -Phase "unknown" -Result "BLOCKED" -Gate "tool" -Message "Forbidden pattern: $($forbidden.message)"
                 }
@@ -182,14 +183,14 @@ if ($toolGate.globalRules -and $toolGate.globalRules.forbiddenPatterns) {
 if ($toolGate.globalRules -and $toolGate.globalRules.requiredPatterns) {
     foreach ($required in $toolGate.globalRules.requiredPatterns) {
         if ($File -and $File -like $required.filePattern -and (Test-Path $File)) {
-            $content = Get-Content $File -Raw -ErrorAction SilentlyContinue
+            $content = Get-Content $File -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
             if ($content -and $content -notmatch $required.pattern) {
                 Write-Host "[WARN] Padrão obrigatório não encontrado: $($required.message)" -ForegroundColor Yellow
                 Write-Host "   Pattern: $($required.pattern)" -ForegroundColor Yellow
                 Write-Host "   File pattern: $($required.filePattern)" -ForegroundColor Yellow
                 
                 # Registrar warn no audit
-                $auditScript = Join-Path $PSScriptRoot ".." "audit-logger.ps1"
+                $auditScript = Join-Path (Join-Path $PSScriptRoot "..") "audit-logger.ps1"
                 if (Test-Path $auditScript) {
                     & $auditScript -Tool $Tool -File $File -Agent "unknown" -Phase "unknown" -Result "WARN" -Gate "tool" -Message "Missing pattern: $($required.message)"
                 }

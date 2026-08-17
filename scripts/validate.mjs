@@ -30,6 +30,23 @@ const REQUIRED_FILES = [
 const OPTIONAL_FILES = [
   'security-gates.json',
   'production-gate.json',
+  'anti-patterns.json',
+  'protected-resources.json',
+  'loop-detector.json',
+  'dependency-gate.json',
+  'truth-gate.json',
+  'reviewer-gate.json',
+  'mcp-registry.json',
+  'handoff-schema.json',
+  'definition-of-done.json',
+  'ci-gate.json',
+];
+
+// OAGE runtime enforcement — warn (not fail) if missing, since these close the "voluntary
+// enforcement" gap but existing installs may predate them.
+const OAGE_RUNTIME_FILES = [
+  '.opencode/plugins/oage-enforce.js',
+  '.opencode/plugins/oage-audit.js',
 ];
 
 // Validation results
@@ -131,6 +148,17 @@ function main() {
     }
   }
 
+  // Check OAGE runtime enforcement plugins (project root, not governance dir)
+  console.log('\nOAGE runtime enforcement:');
+  for (const file of OAGE_RUNTIME_FILES) {
+    const filePath = join(targetDir, file);
+    if (!existsSync(filePath)) {
+      results.warnings.push(`  ${file} - Not present (gates in .opencode/governance/ are advisory-only without it)`);
+    } else {
+      results.passed.push(`  ${file} - Present`);
+    }
+  }
+
   // Validate specific configurations
   console.log('\nValidating configurations...');
 
@@ -138,7 +166,7 @@ function main() {
   const projectRoot = join(targetDir);
   const opencodePath = join(projectRoot, 'opencode.json');
   if (existsSync(opencodePath)) {
-    const opencodeData = validateJSON(opencodePath, ['project', 'agent', 'governance']);
+    const opencodeData = validateJSON(opencodePath, ['project', 'agent']);
     
     // Check permissions structure
     if (opencodeData && opencodeData.permission) {

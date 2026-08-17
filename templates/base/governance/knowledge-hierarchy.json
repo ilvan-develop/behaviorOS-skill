@@ -1,0 +1,119 @@
+{
+  "version": "1.0.0",
+  "description": "BehaviorOS Knowledge Hierarchy — define a hierarquia de fontes de verdade, da mais confiável para a menos.",
+
+  "hierarchy": [
+    {
+      "level": 1,
+      "name": "Repo",
+      "description": "Estado atual do repositório — package.json, tsconfig.json, prisma/schema.prisma, source code.",
+      "source": "read_file, glob, grep",
+      "confidence": 100,
+      "priority": "highest",
+      "useWhen": "Always ground in this first. Repository state is the ultimate source of truth.",
+      "antiPatterns": ["Never assume versions from memory", "Never guess file paths"]
+    },
+    {
+      "level": 2,
+      "name": "Architecture",
+      "description": "Architectural decisions, ADRs, system design documents.",
+      "source": "read_file",
+      "confidence": 95,
+      "priority": "high",
+      "useWhen": "Making design decisions, choosing patterns, understanding system boundaries.",
+      "antiPatterns": ["Never contradict established architecture without explicit justification"]
+    },
+    {
+      "level": 3,
+      "name": "Versions",
+      "description": "Precise version information from package.json files.",
+      "source": "read_file",
+      "confidence": 100,
+      "priority": "high",
+      "useWhen": "Before any dependency-related decision. Always verify actual installed versions.",
+      "antiPatterns": ["Never assume major/minor versions", "Never guess peer dependency requirements"]
+    },
+    {
+      "level": 4,
+      "name": "Official Docs",
+      "description": "Authoritative documentation via Context7 MCP.",
+      "source": "context7",
+      "confidence": 90,
+      "priority": "high",
+      "useWhen": "When repository doesn't have the answer. Verify against official docs.",
+      "antiPatterns": ["Never rely on training data for library APIs", "Never skip docs for less common features"]
+    },
+    {
+      "level": 5,
+      "name": "Skills",
+      "description": "Loaded skills with domain knowledge, patterns, and anti-patterns.",
+      "source": "skill_tool",
+      "confidence": 85,
+      "priority": "medium",
+      "useWhen": "Before implementing patterns, following conventions, or checking anti-patterns.",
+      "antiPatterns": ["Never skip skill loading for relevant file types", "Never contradict skill conventions"]
+    },
+    {
+      "level": 6,
+      "name": "Patterns",
+      "description": "Conventions, coding standards, and established patterns from the codebase.",
+      "source": "codebase_analysis",
+      "confidence": 80,
+      "priority": "medium",
+      "useWhen": "Following existing patterns, maintaining consistency.",
+      "antiPatterns": ["Never introduce new patterns without justification"]
+    },
+    {
+      "level": 7,
+      "name": "Agent Knowledge",
+      "description": "LLM's training knowledge — last resort when other sources fail.",
+      "source": "llm_training",
+      "confidence": 50,
+      "priority": "low",
+      "useWhen": "Only when repository, docs, and skills don't have the answer. Always verify.",
+      "antiPatterns": ["Never treat training knowledge as authoritative", "Always verify against repository state"]
+    },
+    {
+      "level": 8,
+      "name": "Assumptions",
+      "description": "Fallback assumptions — should NEVER be used for implementation.",
+      "source": "inference",
+      "confidence": 20,
+      "priority": "lowest",
+      "useWhen": "NEVER for implementation. Only for generating hypotheses to verify.",
+      "antiPatterns": ["NEVER implement based on assumptions alone", "Always verify assumptions against repository"]
+    }
+  ],
+
+  "enforcement": {
+    "requirement": "Before implementing, agent MUST have evidence from at least Level 1-4.",
+    "minimumEvidence": ["repo_state"],
+    "maxAssumptions": 0,
+    "blockingConditions": [
+      "If only Level 7-8 evidence exists, BLOCK implementation",
+      "If no evidence from Level 1-5 exists, BLOCK implementation",
+      "If evidence contradicts, BLOCK and escalate"
+    ],
+    "note": "Runtime-enforced (Knowledge Gate, oage-enforce.js PHASE 6d) for HIGH/CRITICAL risk operations only, adaptive per BehaviorOS governance philosophy — not a universal gate on every write. MEDIUM risk warns; LOW risk is off. Enforcement is scoped to the current sessionID (see policy-resolver.json 'knowledge-gate' and evidenceSourceMap below), not global across the whole audit trail. HIGH/CRITICAL are deliberately capped at level 3 (Repo/Architecture/Versions), NOT level 4 (Official Docs): level 4 alone would make this gate redundant with the context7-gate, which every HIGH/CRITICAL operation already requires (context7 evidence maps to level 4 — see evidenceSourceMap). Capping at 3 forces the distinct thing the hierarchy actually asks for: docs are necessary but not sufficient, the agent must also have grounded in the repo itself (Repo §1: 'the ultimate source of truth').",
+    "minLevelByRisk": {
+      "LOW": 8,
+      "MEDIUM": 6,
+      "HIGH": 3,
+      "CRITICAL": 3
+    }
+  },
+
+  "evidenceSourceMap": {
+    "description": "Maps the 'source' field recorded on 'grounding_evidence' audit events (oage-audit.js classifyEvidence) to a hierarchy level name above. Required because audit events use concrete source identifiers (which tool/file produced the evidence) while the hierarchy is expressed in abstract categories.",
+    "context7": "Official Docs",
+    "skill": "Skills",
+    "package.json": "Versions",
+    "INSTRUCTIONS.md": "Repo",
+    "architecture": "Architecture",
+    "tests": "Patterns",
+    "schema": "Repo",
+    "contract": "Repo",
+    "governance": "Architecture",
+    "bash-quality": "Patterns"
+  }
+}

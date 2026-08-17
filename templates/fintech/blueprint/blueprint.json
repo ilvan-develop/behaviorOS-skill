@@ -1,0 +1,142 @@
+{
+  "name": "fintech-angola",
+  "version": "1.0.0",
+  "description": "Fintech multi-tenant angolana de processamento de pagamentos",
+  "template": "fintech",
+  "stack": {
+    "frontend": ["nextjs", "react", "tailwind", "shadcn", "forms", "tanstack-query", "tanstack-table"],
+    "backend": ["nestjs", "prisma", "orpc", "better-auth", "zod"],
+    "database": ["prisma", "enterprise-database"],
+    "testing": ["vitest", "playwright", "testing-library", "msw", "axe-core"],
+    "devops": ["turbo", "turborepo", "dotenvx"],
+    "security": ["security", "helmet", "sentry"],
+    "compliance": ["compliance", "fintech-domain", "financial-ledger"]
+  },
+  "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "enabled": true
+    }
+  },
+  "phases": {
+    "F0": {
+      "name": "Foundation",
+      "description": "Setup do projeto, CI/CD, linting",
+      "critical": false,
+      "skills": ["monorepo-architecture-guardian", "turbo", "enterprise-governance", "biome", "commitlint", "husky", "lint-staged", "context7-mcp"],
+      "agents": ["orchestrator", "architect", "devops"]
+    },
+    "F1": {
+      "name": "IAM + Tenants",
+      "description": "Autenticacao e gestao de tenants",
+      "critical": false,
+      "skills": ["monorepo-architecture-guardian", "prisma", "better-auth", "zod", "context7-mcp"],
+      "agents": ["orchestrator", "architect", "backend", "database", "qa"]
+    },
+    "F2": {
+      "name": "Payments",
+      "description": "Pipeline de pagamentos com OCR",
+      "critical": true,
+      "skills": ["monorepo-architecture-guardian", "nestjs", "prisma", "orpc", "better-auth", "zod", "payments", "fintech-domain", "context7-mcp"],
+      "agents": ["orchestrator", "architect", "backend", "frontend", "database", "qa", "security", "compliance"]
+    },
+    "F3": {
+      "name": "Billing",
+      "description": "Faturacao e assinaturas",
+      "critical": true,
+      "skills": ["monorepo-architecture-guardian", "nestjs", "prisma", "orpc", "zod", "financial-ledger", "fintech-domain", "context7-mcp"],
+      "agents": ["orchestrator", "architect", "backend", "database", "qa", "security", "compliance"]
+    },
+    "F4": {
+      "name": "Dev Platform",
+      "description": "Plataforma de desenvolvimento",
+      "critical": false,
+      "skills": ["monorepo-architecture-guardian", "nestjs", "prisma", "orpc", "nextjs", "react", "tailwind", "context7-mcp"],
+      "agents": ["orchestrator", "architect", "backend", "frontend", "database", "qa"]
+    },
+    "F5": {
+      "name": "Audit + Compliance",
+      "description": "Auditoria e conformidade",
+      "critical": true,
+      "skills": ["monorepo-architecture-guardian", "nestjs", "prisma", "orpc", "security", "compliance", "helmet", "sentry", "prom-client", "context7-mcp"],
+      "agents": ["orchestrator", "architect", "backend", "database", "qa", "security", "compliance"]
+    },
+    "F6": {
+      "name": "Launch",
+      "description": "Testes, seguranca, performance",
+      "critical": true,
+      "skills": ["vitest", "playwright", "testing-library", "security", "turbo", "axe-core", "context7-mcp"],
+      "agents": ["orchestrator", "backend", "frontend", "qa", "security", "devops"]
+    }
+  },
+  "agents": {
+    "orchestrator": {
+      "description": "Coordenador autonomo de todas as fases",
+      "mode": "primary",
+      "skills": ["enterprise-governance", "monorepo-architecture-guardian", "turborepo"]
+    },
+    "architect": {
+      "description": "Arquitetura e decisoes de design",
+      "mode": "subagent",
+      "skills": ["monorepo-architecture-guardian", "enterprise-architecture"]
+    },
+    "planner": {
+      "description": "Planejamento de tarefas e breakdown",
+      "mode": "subagent",
+      "skills": ["enterprise-product", "turborepo"]
+    },
+    "backend": {
+      "description": "APIs e logica de negocio",
+      "mode": "subagent",
+      "skills": ["nestjs", "prisma", "orpc", "better-auth", "zod", "payments", "financial-ledger", "fintech-domain"]
+    },
+    "frontend": {
+      "description": "UI e componentes",
+      "mode": "subagent",
+      "skills": ["nextjs", "react", "tailwind", "shadcn", "forms", "frontend-design", "tanstack-query", "tanstack-table"]
+    },
+    "database": {
+      "description": "Schema e migrations",
+      "mode": "subagent",
+      "skills": ["prisma", "zod", "enterprise-database"]
+    },
+    "qa": {
+      "description": "Testes e qualidade",
+      "mode": "subagent",
+      "skills": ["vitest", "playwright", "testing-library", "msw", "axe-core"]
+    },
+    "security": {
+      "description": "Seguranca e compliance",
+      "mode": "subagent",
+      "skills": ["security", "helmet", "sentry", "enterprise-security"]
+    },
+    "devops": {
+      "description": "CI/CD e deploy",
+      "mode": "subagent",
+      "skills": ["turbo", "turborepo", "dotenvx"]
+    },
+    "compliance": {
+      "description": "AGT/SAF-T e regulamentacoes",
+      "mode": "subagent",
+      "skills": ["compliance", "fintech-domain", "financial-ledger"]
+    }
+  },
+  "rules": [
+    "Testes desde o principio",
+    "Contracts-first",
+    "Tenant isolation",
+    "Design tokens",
+    "Quality gates",
+    "Audit trail",
+    "Money movement nativo",
+    "Conformidade AGT/SAF-T",
+    "Pesquisar antes de implementar",
+    "Execucao rapida por defeito",
+    "Consultar docs atualizadas antes de implementar",
+    "Carregar skill relevante antes de cada tarefa",
+    "Agent Loop obrigatorio para todas as fases",
+    "Version pinning obrigatorio"
+  ],
+  "criticalPhases": ["F2", "F3", "F5", "F6"]
+}

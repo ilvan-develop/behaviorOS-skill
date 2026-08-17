@@ -1,0 +1,107 @@
+{
+  "version": "1.0.1",
+  "description": "BehaviorOS Execution Protocol — os 11 passos do protocolo cognitivo do agente.",
+  "runtimeEnforcementNote": "Full session-level step sequencing (proving UNDERSTAND happened before EXECUTE, in order) is NOT enforced at runtime — the OpenCode plugin API's tool.execute hooks are stateless per call (input: { tool, sessionID, callID }, verified against the installed @opencode-ai/plugin types) with no built-in per-session step tracker, so a plugin cannot reliably prove step order without adding its own session-state store, which does not exist yet. What IS enforced today, mapped to these steps, all scoped to the current sessionID: LOAD -> Skill Gate + Context7 Gate (oage-enforce.js PHASE 6a/6c); GROUND -> Knowledge Gate (PHASE 6d, knowledge-hierarchy.json); VALIDATE -> quality-gate (lint/typecheck/test before commit, PHASE 7b). UNDERSTAND/DISCOVER/IDENTIFY/VERIFY/PLAN/AUDIT/LEARN remain guidance for the agent to follow (per this file's per-step 'enforcement' field), not something the plugin can currently block on. Treat this file as informing the agent's own process, not as a runtime state machine.",
+
+  "steps": [
+    {
+      "id": "UNDERSTAND",
+      "name": "Understand",
+      "description": "Compreender o contexto do projeto antes de qualquer ação.",
+      "required": true,
+      "enforcement": "block",
+      "requiredContext": ["projeto", "tecnologias", "convenções"],
+      "groundingEvidence": ["read-instructions", "read-packagejson", "read-blueprint", "read-architecture"]
+    },
+    {
+      "id": "DISCOVER",
+      "name": "Discover",
+      "description": "Procurar arquivos, padrões, dependências relacionados.",
+      "required": true,
+      "enforcement": "warn",
+      "requiredContext": ["arquivos_relacionados", "dependências", "testes"],
+      "groundingEvidence": ["glob", "grep", "read-instructions"]
+    },
+    {
+      "id": "IDENTIFY",
+      "name": "Identify",
+      "description": "Identificar tecnologias relevantes pelo path, conteúdo e dependências.",
+      "required": true,
+      "enforcement": "warn",
+      "requiredContext": ["tecnologias_detectadas", "dependencias_do_projeto"],
+      "groundingEvidence": ["detect-technologies", "read-packagejson", "read-content"]
+    },
+    {
+      "id": "LOAD",
+      "name": "Load",
+      "description": "Carregar skills e documentação baseado nas tecnologias detectadas.",
+      "required": true,
+      "enforcement": "require",
+      "requiredContext": ["skills_carregadas", "docs_consultadas"],
+      "groundingEvidence": ["skill_tool", "context7"]
+    },
+    {
+      "id": "GROUND",
+      "name": "Ground",
+      "description": "Ancorar decisões em evidências concretas do projeto.",
+      "required": true,
+      "enforcement": "require",
+      "requiredContext": ["evidencia_de_ancoragem"],
+      "groundingEvidence": ["read-instructions", "read-packagejson", "read-code", "context7", "read-skill"]
+    },
+    {
+      "id": "VERIFY",
+      "name": "Verify",
+      "description": "Verificar se o plano é válido antes de executar.",
+      "required": true,
+      "enforcement": "warn",
+      "requiredContext": ["plano_validado"],
+      "groundingEvidence": ["verify-conventions", "verify-dependencies", "verify-compatibility"]
+    },
+    {
+      "id": "PLAN",
+      "name": "Plan",
+      "description": "Criar plano de implementação antes de escrever código.",
+      "required": true,
+      "enforcement": "warn",
+      "requiredContext": ["plano_de_implementacao"],
+      "groundingEvidence": ["define-steps", "define-checkpoints"]
+    },
+    {
+      "id": "EXECUTE",
+      "name": "Execute",
+      "description": "Executar a implementação seguindo o plano.",
+      "required": true,
+      "enforcement": "off",
+      "requiredContext": [],
+      "groundingEvidence": []
+    },
+    {
+      "id": "VALIDATE",
+      "name": "Validate",
+      "description": "Validar que o código funciona e segue convenções.",
+      "required": true,
+      "enforcement": "require",
+      "requiredContext": ["tests_passing", "lint_clean", "typecheck_clean"],
+      "groundingEvidence": ["test", "lint", "typecheck", "build"]
+    },
+    {
+      "id": "AUDIT",
+      "name": "Audit",
+      "description": "Auditar a implementação para conformidade.",
+      "required": true,
+      "enforcement": "warn",
+      "requiredContext": ["audit_result"],
+      "groundingEvidence": ["audit-check", "security-check"]
+    },
+    {
+      "id": "LEARN",
+      "name": "Learn",
+      "description": "Aprender com a experiência para melhorar decisões futuras.",
+      "required": true,
+      "enforcement": "off",
+      "requiredContext": [],
+      "groundingEvidence": ["update-decisions", "update-learnings"]
+    }
+  ]
+}

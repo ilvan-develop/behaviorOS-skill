@@ -3,44 +3,86 @@
   "project": "{{PROJECT_NAME}}",
   "description": "{{PROJECT_DESCRIPTION}}",
   "skills": {
-    "paths": [".opencode/skills", ".agents/skills"]
+    "paths": [
+      ".opencode/skills",
+      ".agents/skills"
+    ]
   },
   "agent": {
     "orchestrator": {
       "description": "Coordenador autônomo de todas as fases",
-      "mode": "primary"
+      "mode": "primary",
+      "skills": [
+        "enterprise-architecture",
+        "senior-fullstack",
+        "turborepo"
+      ]
     },
     "architect": {
       "description": "Arquitetura e decisões de design",
-      "mode": "subagent"
+      "mode": "subagent",
+      "skills": [
+        "enterprise-architecture",
+        "senior-fullstack"
+      ]
     },
     "planner": {
       "description": "Planejamento de tarefas e breakdown",
-      "mode": "subagent"
+      "mode": "subagent",
+      "skills": [
+        "enterprise-product",
+        "turborepo"
+      ]
     },
     "backend": {
       "description": "APIs e lógica de negócio",
-      "mode": "subagent"
+      "mode": "subagent",
+      "skills": [
+        "nestjs",
+        "prisma",
+        "orpc"
+      ]
     },
     "frontend": {
       "description": "UI e componentes",
-      "mode": "subagent"
+      "mode": "subagent",
+      "skills": [
+        "nextjs",
+        "react",
+        "tailwind",
+        "shadcn"
+      ]
     },
     "database": {
       "description": "Schema e migrations",
-      "mode": "subagent"
+      "mode": "subagent",
+      "skills": [
+        "prisma"
+      ]
     },
     "qa": {
       "description": "Testes e qualidade",
-      "mode": "subagent"
+      "mode": "subagent",
+      "skills": [
+        "vitest",
+        "playwright"
+      ]
     },
     "security": {
       "description": "Segurança e compliance",
-      "mode": "subagent"
+      "mode": "subagent",
+      "skills": [
+        "security",
+        "compliance"
+      ]
     },
     "devops": {
       "description": "CI/CD e deploy",
-      "mode": "subagent"
+      "mode": "subagent",
+      "skills": [
+        "turbo",
+        "turborepo"
+      ]
     }
   },
   "permission": {
@@ -55,22 +97,5 @@
     },
     "edit": "allow"
   },
-  "governance": {
-    "enabled": true,
-    "scopeApproval": "human",
-    "autonomyModel": "three-level",
-    "parallelExecution": true,
-    "criticalPhases": {{CRITICAL_PHASES}},
-    "immutableRules": [
-      "Testes desde o princípio",
-      "Contracts-first",
-      "Tenant isolation",
-      "Quality gates",
-      "Audit trail",
-      "LGPD",
-      "Criptografia de dados sensíveis",
-      "Pesquisar antes de implementar",
-      "Execução rápida por defeito"
-    ]
-  }
+  "plugin": []
 }

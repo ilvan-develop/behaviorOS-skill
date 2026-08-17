@@ -11,7 +11,10 @@
     "gateEvaluations": true,
     "decisions": true,
     "errors": true,
-    "phaseTransitions": true
+    "phaseTransitions": true,
+    "skillSelectionLog": ".opencode/audit/skill-selections.log",
+    "scopeChanges": true,
+    "agentDelegations": true
   },
   "retention": {
     "maxAge": "90d",

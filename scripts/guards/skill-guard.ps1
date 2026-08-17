@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     behaviorOS Skill Guard - Valida skills antes de tool calls
@@ -44,7 +44,7 @@ if (-not (Test-Path $SkillGateFile)) {
 
 # Ler skill-gate.json
 try {
-    $skillGate = Get-Content $SkillGateFile -Raw | ConvertFrom-Json
+    $skillGate = Get-Content $SkillGateFile -Raw -Encoding UTF8 | ConvertFrom-Json
 } catch {
     Write-Host "[ERROR] Erro ao ler skill-gate.json: $_" -ForegroundColor Red
     exit 1
@@ -125,7 +125,7 @@ foreach ($skill in $requiredSkill) {
 $skillsLoadedFile = Join-Path (Join-Path $ProjectRoot ".opencode") "audit\skills-loaded.json"
 if (Test-Path $skillsLoadedFile) {
     try {
-        $skillsLoaded = Get-Content $skillsLoadedFile -Raw | ConvertFrom-Json
+        $skillsLoaded = Get-Content $skillsLoadedFile -Raw -Encoding UTF8 | ConvertFrom-Json
         $loadedNames = @()
         $skillsArray = if ($skillsLoaded.skills) { $skillsLoaded.skills } else { $skillsLoaded }
         foreach ($entry in $skillsArray) {

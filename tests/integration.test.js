@@ -29,7 +29,7 @@ describe('behaviorOS Integration Tests', () => {
   // Cleanup test directory
   function cleanupTestDir() {
     if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
+      rmSync(testDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
     }
   }
 
@@ -78,11 +78,13 @@ describe('behaviorOS Integration Tests', () => {
           });
 
           const governanceDir = join(targetDir, '.opencode', 'governance');
-          
+
           assert.ok(existsSync(governanceDir), `${template}: Governance directory should exist`);
+          // opencode.json is written to the project root, not .opencode/governance/ —
+          // see core/generator.mjs's `rootFiles` vs `governanceFiles`.
+          assert.ok(existsSync(join(targetDir, 'opencode.json')), `${template}: Missing opencode.json in project root`);
 
           const requiredFiles = [
-            'opencode.json',
             'INSTRUCTIONS.md',
             'permissions-matrix.json',
             'skill-gate.json',
@@ -97,7 +99,7 @@ describe('behaviorOS Integration Tests', () => {
           requiredFiles.forEach(file => {
             assert.ok(existsSync(join(governanceDir, file)), `${template}: Missing ${file}`);
           });
-          
+
           cleanupTestDir();
         });
 
@@ -144,16 +146,15 @@ describe('behaviorOS Integration Tests', () => {
             targetDir: targetDir,
           });
 
-          const opencodePath = join(targetDir, '.opencode', 'governance', 'opencode.json');
-          
-          if (existsSync(opencodePath)) {
-            const content = readFileSync(opencodePath, 'utf-8');
-            const config = JSON.parse(content);
+          const opencodePath = join(targetDir, 'opencode.json');
 
-            assert.strictEqual(config.project, projectName, `${template}: Project name should be replaced`);
-            assert.strictEqual(config.description, projectDescription, `${template}: Project description should be replaced`);
-          }
-          
+          assert.ok(existsSync(opencodePath), `${template}: opencode.json should exist in project root`);
+          const content = readFileSync(opencodePath, 'utf-8');
+          const config = JSON.parse(content);
+
+          assert.strictEqual(config.project, projectName, `${template}: Project name should be replaced`);
+          assert.strictEqual(config.description, projectDescription, `${template}: Project description should be replaced`);
+
           cleanupTestDir();
         });
       });
@@ -181,11 +182,15 @@ describe('behaviorOS Integration Tests', () => {
         });
 
         const governanceDir = join(targetDir, '.opencode', 'governance');
-        
+
         assert.ok(existsSync(governanceDir), `${template}: Governance directory should exist after installation`);
+        assert.ok(existsSync(join(targetDir, 'opencode.json')), `${template}: opencode.json should exist in project root after installation`);
+        assert.doesNotThrow(
+          () => JSON.parse(readFileSync(join(targetDir, 'opencode.json'), 'utf-8')),
+          `${template}: opencode.json should be valid JSON`
+        );
 
         const requiredFiles = [
-          'opencode.json',
           'INSTRUCTIONS.md',
           'permissions-matrix.json',
           'skill-gate.json',
@@ -213,9 +218,13 @@ describe('behaviorOS Integration Tests', () => {
   });
 
   describe('File Structure', () => {
+    // templates/base is shared cross-cutting governance (see core/generator.mjs), not an
+    // installable template — it has no blueprint/opencode.json by design and is excluded here.
+    const NON_TEMPLATE_DIRS = new Set(['base']);
+
     it('should have correct directory structure', () => {
-      const templates = readdirSync(TEMPLATES_DIR);
-      
+      const templates = readdirSync(TEMPLATES_DIR).filter(t => !NON_TEMPLATE_DIRS.has(t));
+
       templates.forEach(template => {
         const templateDir = join(TEMPLATES_DIR, template);
         
@@ -230,8 +239,8 @@ describe('behaviorOS Integration Tests', () => {
     });
 
     it('should have all governance files in each template', () => {
-      const templates = readdirSync(TEMPLATES_DIR);
-      
+      const templates = readdirSync(TEMPLATES_DIR).filter(t => !NON_TEMPLATE_DIRS.has(t));
+
       templates.forEach(template => {
         const governanceDir = join(TEMPLATES_DIR, template, 'governance');
         

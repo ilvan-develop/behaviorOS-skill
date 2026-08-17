@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "description": "Version pinning enforcement (OAGE §19). Bloqueia escrita de package.json sem consultar versões e valida contra version-registry.json.",
+  "enabled": true,
+  "requirePackageJsonCheck": true,
+  "packageJsonPath": "package.json",
+  "auditEvent": "version_verified",
+  "windowMinutes": 60,
+  "action": "block",
+  "message": "Verifique a versão atual da biblioteca no package.json antes de implementar. Não assuma versões da memória (OAGE §19).",
+  "versionValidation": {
+    "enabled": true,
+    "message": "Versão incorreta detectada. Consulte context7 para a versão atual antes de escrever."
+  }
+}

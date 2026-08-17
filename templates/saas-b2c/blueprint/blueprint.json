@@ -1,0 +1,36 @@
+{
+  "name": "saas-b2c",
+  "description": "Business-to-consumer SaaS application",
+  "template": "saas-b2c",
+  "stack": {
+    "frontend": [
+      "nextjs",
+      "react",
+      "tailwind",
+      "shadcn"
+    ],
+    "backend": [
+      "nestjs",
+      "prisma",
+      "orpc",
+      "better-auth"
+    ],
+    "database": [
+      "prisma"
+    ],
+    "testing": [
+      "vitest",
+      "playwright"
+    ],
+    "devops": [
+      "turbo",
+      "turborepo"
+    ]
+  },
+  "criticalPhases": [
+    "F2",
+    "F3",
+    "F5",
+    "F6"
+  ]
+}

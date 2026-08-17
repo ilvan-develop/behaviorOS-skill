@@ -76,23 +76,5 @@
     },
     "edit": "allow"
   },
-  "governance": {
-    "enabled": true,
-    "scopeApproval": "human",
-    "autonomyModel": "three-level",
-    "parallelExecution": true,
-    "criticalPhases": ["F2","F3","F5","F6"],
-    "immutableRules": [
-      "Testes desde o princípio",
-      "Contracts-first",
-      "Tenant isolation",
-      "Design tokens",
-      "Quality gates",
-      "Audit trail",
-      "Money movement nativo",
-      "Conformidade AGT/SAF-T",
-      "Pesquisar antes de implementar",
-      "Execução rápida por defeito"
-    ]
-  }
+  "plugin": []
 }

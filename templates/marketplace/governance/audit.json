@@ -13,7 +13,14 @@
     "gates": true,
     "escalations": true,
     "scopeChanges": true,
-    "agentDeclarations": true
+    "agentDeclarations": true,
+    "skillLoads": true,
+    "skillSelectionLog": ".opencode/audit/skill-selections.log",
+    "gateEvaluations": true,
+    "decisions": true,
+    "errors": true,
+    "phaseTransitions": true,
+    "agentDelegations": true
   },
   "alerts": {
     "onBlock": true,

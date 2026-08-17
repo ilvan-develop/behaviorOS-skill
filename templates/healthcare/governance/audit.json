@@ -14,7 +14,14 @@
     "escalations": true,
     "scopeChanges": true,
     "agentDeclarations": true,
-    "dataAccess": true
+    "dataAccess": true,
+    "skillLoads": true,
+    "skillSelectionLog": ".opencode/audit/skill-selections.log",
+    "gateEvaluations": true,
+    "decisions": true,
+    "errors": true,
+    "phaseTransitions": true,
+    "agentDelegations": true
   },
   "alerts": {
     "onBlock": true,

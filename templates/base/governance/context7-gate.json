@@ -1,0 +1,11 @@
+{
+  "version": "3.0.0",
+  "description": "Context7 enforcement por biblioteca. SUPERSDED by Behavior Resolution kernel (policy-resolver.json). Kept for backward compatibility with legacy scripts.",
+  "enabled": false,
+  "checkBeforeWrite": false,
+  "auditEvent": "context7_queried",
+  "windowMinutes": 30,
+  "action": "off",
+  "message": "Nenhuma consulta context7 encontrada. Consulte a documentação atualizada antes de implementar (OAGE §11).",
+  "note": "Enforcement is now handled by the Behavior Resolution kernel in oage-enforce.js via policy-resolver.json"
+}

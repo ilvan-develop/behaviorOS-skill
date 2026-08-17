@@ -8,7 +8,7 @@
 
 ## Identidade do Projeto
 
-fintech-angola — Fintech multi-tenant angolana de processamento de pagamentos
+my-project — My project
 
 ---
 
@@ -58,11 +58,12 @@ fintech-angola — Fintech multi-tenant angolana de processamento de pagamentos
 - Compilation cache, turbo mode
 - Nunca lento quando há caminho rápido
 
-### 11. Consultar docs atualizadas antes de implementar
-- SEMPRE usar context7 para verificar documentação oficial da lib/framework
-- NUNCA assumir APIs ou versões da memória
+### 11. Consultar docs atualizadas antes de implementar (adaptativo ao risco)
+- Para operações HIGH/CRITICAL (ver `.opencode/governance/risk-engine.json`): usar context7 para verificar documentação oficial da lib/framework antes de escrever/editar
+- Para operações LOW risk (README, docs, testes) não é necessário — Context7 não é burocracia universal
+- NUNCA assumir APIs ou versões da memória quando a operação depende de comportamento específico de versão
 - Verificar changelogs e breaking changes antes de upgrade
-- Documentação é fonte de verdade, não código existente
+- Documentação oficial e o estado atual do repositório vencem o conhecimento interno do agente (ver hierarquia em `.opencode/governance/knowledge-hierarchy.json`)
 
 ### 12. Carregar skill relevante antes de cada tarefa
 - ANTES de escrever código, carregar a skill correspondente
@@ -71,10 +72,10 @@ fintech-angola — Fintech multi-tenant angolana de processamento de pagamentos
 - Se não há skill, pesquisar melhores práticas antes de implementar
 
 ### 12.1 Log de skill selection
-- ANTES de executar tarefa, registar no audit trail qual skill foi selecionada
+- Registado automaticamente em `.opencode/audit/audit.jsonl` (evento `skill_load`) sempre que a tool `skill` é usada — não é necessário chamar nenhum script manualmente
+- `.opencode/audit/skill-selections.log` continua a ser escrito por `scripts/skill-tracker.ps1`/`log-skill-selection.ps1` para quem invoca esses scripts explicitamente, mas o caminho automático (ver regra 17) só escreve em `audit.jsonl`
 - Formato: `[SKILL-LOAD] skill=<nome> agent=<agente> phase=<fase> timestamp=<ISO>`
 - Exemplo: `[SKILL-LOAD] skill=nestjs agent=backend phase=F2 timestamp=2026-08-14T03:23:00Z`
-- Logs ficam em `.opencode/audit/skill-selections.log`
 - Formato JSONL para consumo programático:
   ```json
   {
@@ -105,35 +106,32 @@ fintech-angola — Fintech multi-tenant angolana de processamento de pagamentos
 - Verificar `enterprise-governance` antes de implementar regras transversais
 - Anti-patterns locais documentam implementação específica do contexto
 
-### 16. Enforcement Layer obrigatório
-- ANTES de CADA tool call (write, edit, bash), executar enforcement script
-- Comando: `.\scripts\enforce.ps1 -Tool "<tool>" -File "<file>" -Agent "<agent>" -Phase "<phase>"`
-- Se exit code = 1, BLOQUEAR execução e reportar ao orchestrator
-- Se exit code = 0, prosseguir com a execução
+### 16. Enforcement Layer AUTOMÁTICO (sem scripts manuais)
+- Governance é forçada automaticamente por `.opencode/plugins/oage-enforce.js` em cada tool call
+- NÃO é necessário chamar `enforce.ps1` manualmente — o plugin faz isso automaticamente
+- Se o plugin bloquear, corrija a violação e tente novamente
 - Exception: operações de leitura (read) não requerem enforcement
-- Para bash: incluir parâmetro `-Command "<comando>"`
-- Exemplo: `.\scripts\enforce.ps1 -Tool "write" -File "packages/db/prisma/schema.prisma" -Agent "database" -Phase "F1"`
-- Logs de enforcement ficam em `.opencode/audit/audit.log` e `.opencode/audit/audit.jsonl`
+- Logs de enforcement ficam em `.opencode/audit/audit.jsonl`
 
-### 17. Skill tracking obrigatório
-- ANTES de usar uma skill, registar com: `.\scripts\skill-tracker.ps1 -Skill "<skill>" -Agent "<agent>" -Phase "<phase>" -Action "load"`
-- Listar skills carregadas: `.\scripts\skill-tracker.ps1 -Action "list"`
-- Descarregar skill: `.\scripts\skill-tracker.ps1 -Skill "<skill>" -Agent "<agent>" -Phase "<phase>" -Action "unload"`
+### 17. Skill tracking AUTOMÁTICO (sem scripts manuais)
+- Skills são auto-registradas quando a tool `skill` é usada
+- NÃO é necessário chamar `skill-tracker.ps1` manualmente — `oage-audit.js` faz isso automaticamente
 - Skills devem ser carregadas ANTES de escrever código que depende delas
-- Enforcement script verifica skills obrigatórias para o tipo de arquivo
+- **Plugin enforcement**: `oage-enforce.js` verifica skills obrigatórias para o tipo de arquivo
 
-### 18. Agent Loop obrigatório para todas as fases
-- Toda tarefa DEVE seguir o fluxo do agent loop antes de qualquer implementação
-- Fluxo obrigatório: context7 resolve → context7 query → skill load → implementar → gate → advance
-- ANTES de escrever QUALQUER código, executar:
+### 18. Agent Loop adaptativo ao risco (ENFORCED BY PLUGIN)
+- O fluxo `context7 resolve → context7 query → skill load → implementar → gate → advance` é exigido na intensidade definida pelo risco da operação (`.opencode/governance/risk-engine.json` + `policy-resolver.json`), não uniformemente para todo e qualquer código — ver a filosofia de governança adaptativa no topo deste documento
+- Para operações HIGH/CRITICAL (services, controllers, schemas, auth, payments, ledger, migrations, infraestrutura), ANTES de escrever/editar:
   1. `context7_resolve-library-id` com o nome da lib/framework
   2. `context7_query-docs` com o library ID para obter docs atualizadas
   3. Verificar se a versão da doc corresponde à versão no `package.json` do projeto
-  4. Carregar skill correspondente via `skill-tracker.ps1`
-  5. Implementar usando APENAS APIs documentadas na versão correta
-- Anti-pattern: escrever código sem consultar docs via context7
+  4. Carregar skill correspondente via tool `skill`
+  5. Ler o próprio repositório (schema, contrato, código existente) — documentação externa sozinha não chega para risco HIGH/CRITICAL (ver `knowledge-hierarchy.json`)
+  6. Implementar usando APENAS APIs documentadas na versão correta
+- Para operações LOW/MEDIUM (README, docs, config, componentes) este fluxo é opcional/orientativo, não bloqueante
+- Anti-pattern: escrever código HIGH/CRITICAL sem consultar docs via context7
 - Anti-pattern: usar APIs da memória em vez de documentação verificada
-- Enforcement script valida se context7-mcp está no skills-loaded.json antes de permitir write/edit
+- **Plugin enforcement**: `oage-enforce.js` bloqueia write/edit HIGH/CRITICAL sem chamada context7 recente (Context7 Gate) e sem evidência de grounding no repositório (Knowledge Gate); LOW/MEDIUM não são bloqueados
 
 ### 19. Version pinning obrigatório
 - SEMPRE verificar `package.json` do projeto para obter versões reais de todas as dependências
@@ -247,7 +245,7 @@ Fase 0: Fundação (DEVE terminar primeiro)
 
 ```json
 {
-  "scopeId": "fintech-angola-F2-FEATURE",
+  "scopeId": "my-project-F2-FEATURE",
   "phase": "F2",
   "name": "Feature Core",
   "description": "Implementar feature principal",
@@ -354,3 +352,55 @@ A memória é atualizada automaticamente após cada fase completa.
 ---
 
 *Este documento é imutável. Nenhuma alteração pode ser feita sem aprovação humana explícita.*
+
+
+---
+
+## Regras OAGE Adicionais (20-29)
+
+> Estas regras são anexadas automaticamente a todos os templates pelo gerador de governança
+> (`core/generator.mjs`) e aplicadas em runtime pelos plugins `.opencode/plugins/oage-enforce.js`
+> e `.opencode/plugins/oage-audit.js`. Ver `.opencode/governance/anti-patterns.json`,
+> `protected-resources.json`, `loop-detector.json`, `dependency-gate.json`, `truth-gate.json`,
+> `reviewer-gate.json`, `handoff-schema.json`, `definition-of-done.json`, `context7-gate.json`,
+> `skill-gate-auto.json`, e `version-pinning-gate.json`.
+
+### 20. Recursos protegidos nunca são acessíveis
+- `.env`, `secrets/`, `credentials/`, chaves privadas, ficheiros `.pem`/`.key`/`id_rsa*` nunca podem ser lidos ou escritos por um agente, mesmo que a tarefa pareça exigir.
+- Bloqueado automaticamente em runtime pelo plugin `oage-enforce.js` (`tool.execute.before`), não depende do agente cumprir a regra voluntariamente.
+
+### 21. Anti-patterns são verificados automaticamente
+- Antes de cada `write`/`edit`, o conteúdo é validado contra `.opencode/governance/anti-patterns.json`.
+- Padrões com `severity: critical` bloqueiam a escrita; `high`/`medium` são registados no audit trail para revisão.
+
+### 22. Loop Detection obrigatório
+- Se a mesma acção (ferramenta + alvo + comando/conteúdo) se repetir `maxIdenticalAttempts` vezes dentro da janela definida em `loop-detector.json`, a execução é bloqueada e a tarefa deve ser escalada para decisão humana em vez de repetida novamente.
+
+### 23. Dependências novas exigem justificação registada
+- Antes de `npm install`/`pnpm add`/`yarn add` de um pacote fora do lockfile, registar um evento `dependency_justification` no audit trail com: pacote, motivo, alternativas consideradas, licença.
+
+### 24. Truth Gate — confiança mínima para ficheiros críticos
+- Antes de escrever em ficheiros que correspondem aos padrões críticos definidos em `truth-gate.json` (schemas, migrations, payments, ledger, auth), é necessário um evento `confidence_declared` recente com valor ≥ `minConfidence`.
+
+### 25. Revisão independente em fases críticas
+- Uma fase crítica (`isCritical: true`) só pode ser marcada como `completed` depois de um evento `review_approved` registado por um agente diferente de todos os que escreveram código nessa fase.
+
+### 26. Handoff estruturado entre agentes/fases
+- Ao concluir uma fase ou entregar trabalho a outro agente, gerar um documento de handoff via `node scripts/handoff.mjs` seguindo `.opencode/governance/handoff-schema.json`, guardado em `.opencode/handoffs/`.
+- O próximo agente deve ler o handoff antes de assumir a tarefa, em vez de depender apenas do histórico bruto da conversa.
+
+### 27. Evidência obrigatória antes de declarar concluído
+- Nenhuma fase pode ser marcada `completed` sem um ficheiro de evidência em `.opencode/evidence/{phase}.json` contendo os campos definidos em `definition-of-done.json` (testes executados, resultados, build, lint, typecheck e, em fases críticas, security e diff summary).
+- `scripts/evidence-check.mjs` valida isto antes de `state-manager.ps1 -Action set -Status completed` aceitar a transição.
+
+### 28. Context7 adaptativo ao risco antes de implementar (ENFORCED BY PLUGIN)
+- Para operações HIGH/CRITICAL, ANTES de escrever/editar código, chamar `context7_resolve-library-id` e `context7_query-docs`
+- Para operações LOW/MEDIUM (README, docs, config, testes) não é exigido — ver risco por operação em `risk-engine.json`
+- O plugin `oage-enforce.js` bloqueia write/edit HIGH/CRITICAL se não houver chamada context7 recente (janela configurável em `policy-resolver.json` → `context7-gate`; `context7-gate.json` está deprecado/substituído por este)
+- NUNCA assumir APIs ou versões da memória quando a operação depende de comportamento específico de versão — documentação oficial e o repositório são fonte de verdade, nessa ordem (ver `knowledge-hierarchy.json`)
+- Anti-pattern: escrever código HIGH/CRITICAL sem consultar docs via context7
+
+### 29. Quality gates antes de commit (ENFORCED BY PLUGIN)
+- Antes de `git commit`, o plugin executa automaticamente lint, typecheck e test
+- Se algum gate falhar, o commit é bloqueado
+- Configuração em `tool-gate.json` define os checks obrigatórios por regra

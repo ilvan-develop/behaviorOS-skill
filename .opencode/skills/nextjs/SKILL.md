@@ -112,16 +112,16 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: '{{PROJECT_NAME}}',
-    template: '%s | {{PROJECT_NAME}}',
+    default: 'my-project',
+    template: '%s | my-project',
   },
-  description: '{{PROJECT_DESCRIPTION}}',
+  description: 'My project',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   robots: { index: true, follow: true },
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    siteName: '{{PROJECT_NAME}}',
+    siteName: 'my-project',
   },
 };
 

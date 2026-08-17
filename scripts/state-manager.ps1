@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     behaviorOS State Manager - Gerenciamento de estado do pipeline
@@ -48,16 +48,27 @@ $StateFile = Join-Path $LogsDir "state.json"
 $AuditLogFile = Join-Path $AuditDir "audit.log"
 
 # Funcoes auxiliares
+
+# Windows PowerShell 5.1's `Set-Content -Encoding UTF8` writes a BOM, which breaks Node's
+# JSON.parse (used by scripts/validate.mjs, scripts/lint.mjs, core/validator.mjs, and the
+# .opencode/plugins/*.mjs runtime hooks) on every JSON file this script rewrites. Write UTF-8
+# without a BOM explicitly instead.
+function Set-Utf8NoBom {
+    param([string]$Path, [string]$Content)
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($Path, $Content, $utf8NoBom)
+}
+
 function Read-StateMachine {
     if (-not (Test-Path $StateMachineFile)) {
         throw "state-machine.json nao encontrado: $StateMachineFile"
     }
-    return Get-Content $StateMachineFile -Raw | ConvertFrom-Json
+    return Get-Content $StateMachineFile -Raw -Encoding UTF8 | ConvertFrom-Json
 }
 
 function Write-StateMachine {
     param($Object)
-    $Object | ConvertTo-Json -Depth 10 | Set-Content $StateMachineFile
+    Set-Utf8NoBom -Path $StateMachineFile -Content ($Object | ConvertTo-Json -Depth 10)
 }
 
 function Read-State {
@@ -68,7 +79,7 @@ function Read-State {
             history = @()
         }
     }
-    return Get-Content $StateFile -Raw | ConvertFrom-Json
+    return Get-Content $StateFile -Raw -Encoding UTF8 | ConvertFrom-Json
 }
 
 function Write-State {
@@ -76,7 +87,7 @@ function Write-State {
     if (-not (Test-Path $LogsDir)) {
         New-Item -ItemType Directory -Path $LogsDir -Force | Out-Null
     }
-    $Object | ConvertTo-Json -Depth 10 | Set-Content $StateFile
+    Set-Utf8NoBom -Path $StateFile -Content ($Object | ConvertTo-Json -Depth 10)
 }
 
 function Add-AuditEntry {
@@ -84,7 +95,8 @@ function Add-AuditEntry {
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $entry = "$timestamp | STATE | $ActionType | $Details"
     if (Test-Path $AuditLogFile) {
-        Add-Content -Path $AuditLogFile -Value $entry
+        $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::AppendAllText($AuditLogFile, "$entry`n", $utf8NoBom)
     }
 }
 
@@ -131,6 +143,25 @@ if ($Action -eq "set") {
     $phaseInfo = $stateMachine.states | Where-Object { $_.id -eq $Phase }
     if (-not $phaseInfo) {
         throw "Fase $Phase nao encontrada no state-machine.json"
+    }
+
+    # OAGE gates: fases criticas nao podem ser marcadas 'completed' sem evidencia
+    # (definition-of-done.json) e sem revisao independente (reviewer-gate.json).
+    if ($Status -eq "completed" -and $phaseInfo.isCritical) {
+        Write-Host ""
+        Write-Host "== OAGE: a validar evidence-gate e reviewer-gate para fase critica $Phase ==" -ForegroundColor Cyan
+
+        node (Join-Path $PSScriptRoot "evidence-check.mjs") --phase $Phase
+        if ($LASTEXITCODE -ne 0) {
+            Add-AuditEntry "SET" "BLOCKED: evidence-gate falhou para fase $Phase"
+            throw "Evidence-gate bloqueou a conclusao da fase $Phase. Ver .opencode/evidence/$Phase.json"
+        }
+
+        node (Join-Path $PSScriptRoot "reviewer-check.mjs") --phase $Phase
+        if ($LASTEXITCODE -ne 0) {
+            Add-AuditEntry "SET" "BLOCKED: reviewer-gate falhou para fase $Phase"
+            throw "Reviewer-gate bloqueou a conclusao da fase $Phase. Requer evento 'review_approved' de um agente independente."
+        }
     }
 
     $oldStatus = $phaseInfo.status
@@ -268,11 +299,11 @@ if ($Action -eq "reset") {
                 "current-phase.md" { "# Fase Atual`n`nFase atual: F0 - Fundacao`nStatus: Pendente`n" }
                 default { "# Conteudo`n`nConteudo vazio.`n" }
             }
-            Set-Content -Path $memoryFile -Value $content
+            Set-Utf8NoBom -Path $memoryFile -Content $content
         }
     }
 
-    Set-Content -Path $AuditLogFile -Value ""
+    Set-Utf8NoBom -Path $AuditLogFile -Content ""
 
     Write-Host "[OK] Estado resetado com sucesso" -ForegroundColor Green
     Add-AuditEntry "RESET" "Estado resetado para F0"

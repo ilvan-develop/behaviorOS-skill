@@ -1,34 +1,100 @@
 {
-  "version": "1.0.0",
+  "version": "2.0.0",
+  "description": "Skill requirements por fase, com IDs hardcoded (F0-F6). SUPERSEDED by Behavior Resolution kernel (policy-resolver.json skill-gate + skill-engine.js technology detection), que deriva requisitos do ficheiro/conteúdo em vez de IDs de fase fixos.",
+  "deprecated": true,
+  "enabled": false,
   "project": "{{PROJECT_NAME}}",
   "phases": {
     "F0": {
-      "required": ["monorepo-architecture-guardian", "turbo", "enterprise-governance", "context7-mcp"],
-      "optional": ["turbo"]
+      "required": [
+        "monorepo-architecture-guardian",
+        "turbo",
+        "enterprise-governance",
+        "context7-mcp"
+      ],
+      "optional": [
+        "turbo"
+      ]
     },
     "F1": {
-      "required": ["monorepo-architecture-guardian", "prisma", "context7-mcp"],
-      "optional": ["better-auth", "security"]
+      "required": [
+        "monorepo-architecture-guardian",
+        "prisma",
+        "context7-mcp"
+      ],
+      "optional": [
+        "better-auth",
+        "security"
+      ]
     },
     "F2": {
-      "required": ["monorepo-architecture-guardian", "nestjs", "prisma", "orpc", "better-auth", "context7-mcp"],
-      "optional": ["vitest", "playwright", "compliance"]
+      "required": [
+        "monorepo-architecture-guardian",
+        "nestjs",
+        "prisma",
+        "orpc",
+        "better-auth",
+        "context7-mcp"
+      ],
+      "optional": [
+        "vitest",
+        "playwright",
+        "compliance"
+      ]
     },
     "F3": {
-      "required": ["monorepo-architecture-guardian", "nestjs", "prisma", "orpc", "context7-mcp"],
-      "optional": ["vitest", "playwright", "compliance"]
+      "required": [
+        "monorepo-architecture-guardian",
+        "nestjs",
+        "prisma",
+        "orpc",
+        "context7-mcp"
+      ],
+      "optional": [
+        "vitest",
+        "playwright",
+        "compliance"
+      ]
     },
     "F4": {
-      "required": ["monorepo-architecture-guardian", "nestjs", "prisma", "orpc", "context7-mcp"],
-      "optional": ["vitest", "playwright"]
+      "required": [
+        "monorepo-architecture-guardian",
+        "nestjs",
+        "prisma",
+        "orpc",
+        "context7-mcp"
+      ],
+      "optional": [
+        "vitest",
+        "playwright"
+      ]
     },
     "F5": {
-      "required": ["monorepo-architecture-guardian", "nestjs", "prisma", "orpc", "security", "compliance", "context7-mcp"],
-      "optional": ["vitest", "playwright"]
+      "required": [
+        "monorepo-architecture-guardian",
+        "nestjs",
+        "prisma",
+        "orpc",
+        "security",
+        "compliance",
+        "context7-mcp"
+      ],
+      "optional": [
+        "vitest",
+        "playwright"
+      ]
     },
     "F6": {
-      "required": ["vitest", "playwright", "testing-library", "security", "turbo", "context7-mcp"],
+      "required": [
+        "vitest",
+        "playwright",
+        "testing-library",
+        "security",
+        "turbo",
+        "context7-mcp"
+      ],
       "optional": []
     }
-  }
+  },
+  "note": "Enforcement is now handled by the Behavior Resolution kernel in oage-enforce.js via policy-resolver.json. Nothing in .opencode/plugins reads this file anymore."
 }

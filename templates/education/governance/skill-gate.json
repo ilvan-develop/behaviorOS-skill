@@ -1,30 +1,74 @@
 {
-  "version": "1.0.0",
+  "version": "2.0.0",
+  "description": "Skill requirements por fase, com IDs hardcoded (F0-F6). SUPERSEDED by Behavior Resolution kernel (policy-resolver.json skill-gate + skill-engine.js technology detection), que deriva requisitos do ficheiro/conteúdo em vez de IDs de fase fixos.",
+  "deprecated": true,
+  "enabled": false,
   "project": "{{PROJECT_NAME}}",
   "phases": {
     "F0": {
-      "required": ["monorepo-architecture-guardian", "turbo"],
+      "required": [
+        "monorepo-architecture-guardian",
+        "turbo"
+      ],
       "optional": []
     },
     "F1": {
-      "required": ["monorepo-architecture-guardian", "prisma"],
-      "optional": ["better-auth", "security"]
+      "required": [
+        "monorepo-architecture-guardian",
+        "prisma"
+      ],
+      "optional": [
+        "better-auth",
+        "security"
+      ]
     },
     "F2": {
-      "required": ["monorepo-architecture-guardian", "nestjs", "prisma", "orpc"],
-      "optional": ["vitest"]
+      "required": [
+        "monorepo-architecture-guardian",
+        "nestjs",
+        "prisma",
+        "orpc"
+      ],
+      "optional": [
+        "vitest"
+      ]
     },
     "F3": {
-      "required": ["monorepo-architecture-guardian", "nestjs", "prisma", "orpc", "nextjs", "react"],
-      "optional": ["vitest", "playwright"]
+      "required": [
+        "monorepo-architecture-guardian",
+        "nestjs",
+        "prisma",
+        "orpc",
+        "nextjs",
+        "react"
+      ],
+      "optional": [
+        "vitest",
+        "playwright"
+      ]
     },
     "F4": {
-      "required": ["monorepo-architecture-guardian", "nestjs", "prisma", "orpc"],
-      "optional": ["vitest", "playwright"]
+      "required": [
+        "monorepo-architecture-guardian",
+        "nestjs",
+        "prisma",
+        "orpc"
+      ],
+      "optional": [
+        "vitest",
+        "playwright"
+      ]
     },
     "F5": {
-      "required": ["vitest", "playwright", "testing-library", "security", "turbo"],
+      "required": [
+        "vitest",
+        "playwright",
+        "testing-library",
+        "security",
+        "turbo"
+      ],
       "optional": []
     }
-  }
+  },
+  "note": "Enforcement is now handled by the Behavior Resolution kernel in oage-enforce.js via policy-resolver.json. Nothing in .opencode/plugins reads this file anymore."
 }

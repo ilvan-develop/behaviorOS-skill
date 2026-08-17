@@ -1,0 +1,58 @@
+{
+  "version": "1.0.0",
+  "description": "Registry de versões esperadas por biblioteca. Usado pelo version-pinning-gate para validar versões escritas.",
+  "lastVerified": "2026-08-17",
+  "libraries": {
+    "prisma": {
+      "currentMajor": 7,
+      "acceptRange": "^7.6.0",
+      "note": "Prisma 7 usa generator 'prisma-client' (não 'prisma-client-js'). Client importado de './generated/prisma/client'."
+    },
+    "@prisma/client": {
+      "currentMajor": 7,
+      "acceptRange": "^7.6.0",
+      "note": "Legado em Prisma 7. Preferir import de './generated/prisma/client'"
+    },
+    "better-auth": {
+      "currentMajor": 1,
+      "acceptRange": "^1.6.23",
+      "note": "Usar betterAuth() configuration. NestJS via @thallesp/nestjs-better-auth"
+    },
+    "next": {
+      "currentMajor": 16,
+      "acceptRange": "^16.0.0"
+    },
+    "react": {
+      "currentMajor": 19,
+      "acceptRange": "^19.0.0"
+    },
+    "@nestjs/core": {
+      "currentMajor": 11,
+      "acceptRange": "^11.0.0"
+    },
+    "@nestjs/common": {
+      "currentMajor": 11,
+      "acceptRange": "^11.0.0"
+    },
+    "zod": {
+      "currentMajor": 3,
+      "acceptRange": "^3.24.0"
+    },
+    "vitest": {
+      "currentMajor": 4,
+      "acceptRange": "^4.0.0"
+    },
+    "turbo": {
+      "currentMajor": 2,
+      "acceptRange": "^2.3.0"
+    },
+    "typescript": {
+      "currentMajor": 5,
+      "acceptRange": "^5.7.0"
+    },
+    "prom-client": {
+      "currentMajor": 15,
+      "acceptRange": "^15.1.0"
+    }
+  }
+}

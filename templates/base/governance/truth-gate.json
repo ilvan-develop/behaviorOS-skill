@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "description": "Truth Gate — exige confiança declarada e registada antes de escrever em ficheiros críticos. SUPERSEDED by Behavior Resolution kernel (policy-resolver.json).",
+  "enabled": false,
+  "minConfidence": 95,
+  "windowMinutes": 30,
+  "criticalPatterns": [
+    "*.prisma",
+    "**/migrations/**",
+    "**/payment*/**",
+    "**/ledger*/**",
+    "**/auth/**",
+    "**/*.security.*"
+  ],
+  "requiredAuditEvent": "confidence_declared",
+  "action": "off",
+  "message": "Escrita bloqueada: nenhum evento 'confidence_declared' >= minConfidence registado.",
+  "note": "Enforcement is now handled by the Behavior Resolution kernel in oage-enforce.js via policy-resolver.json. Per-risk thresholds: LOW=0%, MEDIUM=60%, HIGH=80%, CRITICAL=95%"
+}

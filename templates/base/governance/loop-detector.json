@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "description": "Configuração do Recovery Engine / detector de loops (OAGE §27-28).",
+  "enabled": true,
+  "maxIdenticalAttempts": 3,
+  "windowMinutes": 15,
+  "signature": ["tool", "target", "commandOrContent"],
+  "onLoopDetected": {
+    "action": "block",
+    "escalate": true,
+    "message": "Loop detectado: a mesma ação (ferramenta+alvo+conteúdo) foi repetida {count} vezes em {windowMinutes} minutos. Execução bloqueada — escalar para revisão humana em vez de tentar novamente."
+  },
+  "stateFile": ".opencode/audit/loop-state.json"
+}

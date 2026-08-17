@@ -1,0 +1,43 @@
+{
+  "version": "1.0.0",
+  "description": "Esquema obrigatório para handoffs entre agentes/fases (OAGE §30). Gerado por scripts/handoff.mjs e guardado em .opencode/handoffs/.",
+  "type": "object",
+  "required": [
+    "from",
+    "to",
+    "task",
+    "context",
+    "filesRead",
+    "filesChanged",
+    "skillsUsed",
+    "commandsExecuted",
+    "validation",
+    "knownRisks",
+    "openIssues",
+    "nextAction"
+  ],
+  "properties": {
+    "from": { "type": "string", "description": "Agente/fase de origem" },
+    "to": { "type": "string", "description": "Agente/fase de destino" },
+    "task": { "type": "string", "description": "Descrição da tarefa entregue" },
+    "context": { "type": "string", "description": "Contexto necessário para continuar sem reler todo o histórico" },
+    "decisions": { "type": "array", "items": { "type": "string" }, "description": "Decisões tomadas e porquê" },
+    "assumptions": { "type": "array", "items": { "type": "string" } },
+    "filesRead": { "type": "array", "items": { "type": "string" } },
+    "filesChanged": { "type": "array", "items": { "type": "string" } },
+    "skillsUsed": { "type": "array", "items": { "type": "string" } },
+    "commandsExecuted": { "type": "array", "items": { "type": "string" } },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "lint": { "type": "string" },
+        "typecheck": { "type": "string" },
+        "test": { "type": "string" },
+        "build": { "type": "string" }
+      }
+    },
+    "knownRisks": { "type": "array", "items": { "type": "string" } },
+    "openIssues": { "type": "array", "items": { "type": "string" } },
+    "nextAction": { "type": "string" }
+  }
+}

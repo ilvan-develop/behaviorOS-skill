@@ -1,0 +1,11 @@
+{
+  "version": "1.0.1",
+  "description": "Exige revisão por agente independente antes de completar fases críticas (OAGE §26). Verificado por scripts/reviewer-check.mjs ao marcar uma fase crítica como 'completed'.",
+  "enabled": true,
+  "appliesToCriticalPhasesOnly": true,
+  "requiredAuditEvent": "review_approved",
+  "rule": "O 'reviewedBy' registado no evento review_approved tem de ser diferente de todos os agentes que registaram eventos 'write'/'edit' nessa fase.",
+  "action": "deny",
+  "message": "Fase crítica não pode ser marcada como concluída sem um evento 'review_approved' de um agente diferente do(s) implementador(es).",
+  "knownLimitation": "O hook tool.execute do OpenCode (verificado em @opencode-ai/plugin) não expõe o nome do agente, só sessionID/callID. Escritas feitas pelo caminho automático (oage-audit.js) ficam registadas com agent='unknown'. scripts/reviewer-check.mjs falha fechado (bloqueia) quando isto acontece, em vez de aceitar qualquer 'reviewedBy' como independente — a revisão tem de ser declarada explicitamente via 'node scripts/audit-event.mjs --event review_approved --agent <revisor> --reviewedBy <revisor>' com confirmação humana de que é um agente diferente."
+}

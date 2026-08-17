@@ -1,8 +1,10 @@
-# Padrões Descobertos
+# Padrões Descobertos — my-project
 
-## Governance
+> **Projeto:** my-project
+> **Descrição:** Padrões descobertos durante desenvolvimento
 
-- enforcement.ps1 valida todos os guards antes de tool calls
-- permissions-matrix.json controla agentes por fase
-- skill-gate.json define skills obrigatórias por fase
-- audit trail registra todas as acções críticas
+---
+
+## Padrões
+
+(nenhum padrão descoberto ainda)

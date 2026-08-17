@@ -1,12 +1,12 @@
 ---
 name: enterprise-governance
-description: Governança cross-cutting do {{PROJECT_NAME}}. Use quando verificar regras que afetam múltiplas skills, validar anti-patterns transversais, ou consultar o single source of truth para tenant isolation, audit trail, design tokens, secrets, e PCI-DSS. Carregar antes de qualquer tarefa que envolva mais de um domínio.
+description: Governança cross-cutting do my-project. Use quando verificar regras que afetam múltiplas skills, validar anti-patterns transversais, ou consultar o single source of truth para tenant isolation, audit trail, design tokens, secrets, e PCI-DSS. Carregar antes de qualquer tarefa que envolva mais de um domínio.
 metadata:
   scope: governance
   version: "1.0.0"
 ---
 
-# Enterprise Governance - {{PROJECT_NAME}}
+# Enterprise Governance - my-project
 
 ## 1. Visão Geral
 
@@ -233,7 +233,7 @@ Cada skill técnica que implementa uma regra cross-cutting deve incluir:
 #!/bin/bash
 # scripts/fitness-check.sh
 
-echo "=== Fitness Functions - {{PROJECT_NAME}} ==="
+echo "=== Fitness Functions - my-project ==="
 
 # 1. Verificar PrismaClient isolado
 echo "[1/4] Verificar PrismaClient..."

@@ -1,0 +1,34 @@
+{
+  "version": "1.0.0",
+  "description": "Recursos protegidos — nunca acessíveis por agentes, mesmo em leitura (OAGE §19, §41).",
+  "enabled": true,
+  "denyReadPatterns": [
+    "**/.env",
+    "**/.env.*",
+    "!**/.env.example",
+    "!**/.env.sample",
+    "**/secrets/**",
+    "**/credentials/**",
+    "**/*.pem",
+    "**/*.key",
+    "**/id_rsa*",
+    "**/*.p12",
+    "**/*.pfx",
+    "**/.aws/**",
+    "**/.ssh/**",
+    "**/terraform.tfstate*",
+    "**/service-account*.json"
+  ],
+  "denyWritePatterns": [
+    "**/.env",
+    "**/.env.*",
+    "!**/.env.example",
+    "!**/.env.sample",
+    ".opencode/governance/**",
+    ".opencode/audit/**",
+    ".opencode/plugins/**"
+  ],
+  "denyWritePatternsNote": "Governance/audit/plugin internals are the Governance Kernel itself — INSTRUCTIONS.md's absolute prohibitions already say an agent must never modify its own permissions or the kernel, but nothing technically enforced that until this list included these paths. Live-observed gap: a blocked write was followed by the model reading, then attempting to overwrite, .opencode/audit/loop-state.json to erase the very block it had just hit.",
+  "action": "deny",
+  "message": "Acesso negado: recurso protegido. Ver .opencode/governance/protected-resources.json."
+}

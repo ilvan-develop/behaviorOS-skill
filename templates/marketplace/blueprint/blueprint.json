@@ -1,0 +1,35 @@
+{
+  "name": "marketplace",
+  "description": "Multi-sided marketplace",
+  "template": "marketplace",
+  "stack": {
+    "frontend": [
+      "nextjs",
+      "react",
+      "tailwind",
+      "shadcn"
+    ],
+    "backend": [
+      "nestjs",
+      "prisma",
+      "orpc"
+    ],
+    "database": [
+      "prisma"
+    ],
+    "testing": [
+      "vitest",
+      "playwright"
+    ],
+    "devops": [
+      "turbo",
+      "turborepo"
+    ]
+  },
+  "criticalPhases": [
+    "F2",
+    "F3",
+    "F5",
+    "F6"
+  ]
+}

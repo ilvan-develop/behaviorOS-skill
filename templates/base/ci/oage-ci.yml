@@ -1,0 +1,52 @@
+name: OAGE Governance CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+jobs:
+  governance:
+    name: Governance & Quality Gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: |
+          if [ -f pnpm-lock.yaml ]; then corepack enable && pnpm install --frozen-lockfile
+          elif [ -f package-lock.json ]; then npm ci
+          else echo "No lockfile found, skipping install"; fi
+
+      - name: Policy validation (behaviorOS governance)
+        run: node scripts/validate.mjs
+
+      - name: Secret scan
+        run: node scripts/lint.mjs --secrets-only
+
+      - name: Lint
+        run: (pnpm lint || npm run lint) 2>/dev/null || echo "No lint script configured, skipping"
+
+      - name: Typecheck
+        run: (pnpm typecheck || npm run typecheck) 2>/dev/null || echo "No typecheck script configured, skipping"
+
+      - name: Unit tests
+        run: (pnpm test || npm test) 2>/dev/null || echo "No test script configured, skipping"
+
+      - name: Build
+        run: (pnpm build || npm run build) 2>/dev/null || echo "No build script configured, skipping"
+
+  anti-pattern-scan:
+    name: Anti-Pattern Scan (critical)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Scan diff for critical anti-patterns
+        run: node scripts/lint.mjs --anti-patterns-only

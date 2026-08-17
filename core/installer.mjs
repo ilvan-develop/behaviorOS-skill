@@ -33,6 +33,11 @@ export function installFromTemplate(options) {
     projectDescription,
     criticalPhases,
     targetDir,
+    domain,
+    stack,
+    phases,
+    domainRules,
+    domainSkills,
   } = options;
 
   // Validate template exists
@@ -51,6 +56,11 @@ export function installFromTemplate(options) {
     template,
     criticalPhases,
     targetDir,
+    domain,
+    stack,
+    phases,
+    domainRules,
+    domainSkills,
   });
 
   if (!governanceResult.success) {
@@ -73,6 +83,14 @@ export function installFromTemplate(options) {
     projectDescription,
   });
 
+  // Install blueprint README (project-facing description of the template)
+  const blueprintFiles = installBlueprint(templateDir, targetDir, {
+    projectName,
+    projectDescription,
+  });
+
+  const generatedFiles = [...governanceResult.generatedFiles, ...blueprintFiles];
+
   return {
     success: true,
     template,
@@ -80,11 +98,70 @@ export function installFromTemplate(options) {
     governanceDir: governanceResult.governanceDir,
     memoryDir: memoryResult.memoryDir,
     auditDir: governanceResult.auditDir,
-    generatedFiles: governanceResult.generatedFiles,
+    generatedFiles,
+    files: generatedFiles, // alias — kept for callers/tests written against either name
     memoryFiles: memoryResult.generatedFiles,
     skills: skillsResult,
+    blueprint: blueprintFiles,
     validation: validationResult,
   };
+}
+
+/**
+ * Copy templateDir/blueprint/README.md into targetDir/.opencode/blueprint/README.md,
+ * substituting {{PROJECT_NAME}} / {{PROJECT_DESCRIPTION}} like the other governance files.
+ * @returns {string[]} relative paths of files installed
+ */
+function installBlueprint(templateDir, targetDir, options = {}) {
+  const sourcePath = join(templateDir, 'blueprint', 'README.md');
+  if (!existsSync(sourcePath)) return [];
+
+  const targetBlueprintDir = join(targetDir, '.opencode', 'blueprint');
+  if (!existsSync(targetBlueprintDir)) {
+    mkdirSync(targetBlueprintDir, { recursive: true });
+  }
+
+  let content = readFileSync(sourcePath, 'utf8');
+  content = content.replace(/\{\{PROJECT_NAME\}\}/g, options.projectName || 'my-project');
+  content = content.replace(/\{\{PROJECT_DESCRIPTION\}\}/g, options.projectDescription || 'My project');
+
+  writeFileSync(join(targetBlueprintDir, 'README.md'), content);
+  return ['.opencode/blueprint/README.md'];
+}
+
+/**
+ * Copy an entire custom blueprint directory (all its files — README.md plus any other docs
+ * like 01-STACK.md, 02-ARCHITECTURE.md, etc.) into targetDir/.opencode/blueprint/, applying
+ * the same {{PROJECT_NAME}}/{{PROJECT_DESCRIPTION}} substitution as the rest of the
+ * generated files. Returns the relative paths written.
+ *
+ * This exists because installFromBlueprint's fallback path (no blueprint.json) used to only
+ * use the custom blueprint's README to GUESS which built-in template to install, then called
+ * installFromTemplate — which installs that TEMPLATE's own generic blueprint/README.md, not
+ * anything from the user's actual blueprint directory. A user pointing --blueprint at a real,
+ * detailed blueprint (e.g. 14 markdown docs describing architecture, phases, ledger, security)
+ * ended up with none of that content in the generated project — just a generic placeholder
+ * README, with the real docs silently discarded. Copying the whole source directory here
+ * (called after installFromTemplate, so it overwrites the generic placeholder) fixes that.
+ */
+function copyBlueprintDirectory(blueprintPath, targetDir, options = {}) {
+  const targetBlueprintDir = join(targetDir, '.opencode', 'blueprint');
+  if (!existsSync(targetBlueprintDir)) {
+    mkdirSync(targetBlueprintDir, { recursive: true });
+  }
+
+  const written = [];
+  for (const entry of readdirSync(blueprintPath, { withFileTypes: true })) {
+    if (entry.name === 'blueprint.json') continue; // goes to .opencode/governance/, handled separately
+    const srcPath = join(blueprintPath, entry.name);
+    if (entry.isDirectory()) continue; // blueprint dirs are flat in practice; skip nested dirs rather than guess structure
+    let content = readFileSync(srcPath, 'utf8');
+    content = content.replace(/\{\{PROJECT_NAME\}\}/g, options.projectName || 'my-project');
+    content = content.replace(/\{\{PROJECT_DESCRIPTION\}\}/g, options.projectDescription || 'My project');
+    writeFileSync(join(targetBlueprintDir, entry.name), content);
+    written.push(`.opencode/blueprint/${entry.name}`);
+  }
+  return written;
 }
 
 /**
@@ -133,7 +210,20 @@ function installSkills(templateDir, targetDir, options = {}) {
   const templateSkillsDir = join(templateDir, 'skills');
   const targetSkillsDir = join(targetDir, '.opencode', 'skills');
 
-  // If template has skills, copy them
+  // Always start with base shared skills (foundation)
+  const baseSkillsDir = join(ROOT_DIR, 'templates', 'base', 'skills');
+  if (existsSync(baseSkillsDir)) {
+    if (!existsSync(targetSkillsDir)) {
+      mkdirSync(targetSkillsDir, { recursive: true });
+    }
+    copyDirRecursive(baseSkillsDir, targetSkillsDir, {
+      replacePlaceholders: true,
+      projectName: options.projectName,
+      projectDescription: options.projectDescription,
+    });
+  }
+
+  // If template has its own skills, merge on top (template overrides base)
   if (existsSync(templateSkillsDir)) {
     if (!existsSync(targetSkillsDir)) {
       mkdirSync(targetSkillsDir, { recursive: true });
@@ -143,24 +233,14 @@ function installSkills(templateDir, targetDir, options = {}) {
       projectName: options.projectName,
       projectDescription: options.projectDescription,
     });
-    return { success: true, source: 'template', skillsDir: targetSkillsDir };
+    return { success: true, source: 'template+base', skillsDir: targetSkillsDir };
   }
 
-  // Fallback: copy from custom template if available
-  const customSkillsDir = join(ROOT_DIR, 'templates', 'custom', 'skills');
-  if (existsSync(customSkillsDir)) {
-    if (!existsSync(targetSkillsDir)) {
-      mkdirSync(targetSkillsDir, { recursive: true });
-    }
-    copyDirRecursive(customSkillsDir, targetSkillsDir, {
-      replacePlaceholders: true,
-      projectName: options.projectName,
-      projectDescription: options.projectDescription,
-    });
-    return { success: true, source: 'custom-fallback', skillsDir: targetSkillsDir };
+  if (existsSync(baseSkillsDir)) {
+    return { success: true, source: 'base', skillsDir: targetSkillsDir };
   }
 
-  return { success: false, source: 'none', message: 'No skills found in template or custom fallback' };
+  return { success: false, source: 'none', message: 'No skills found in template or base' };
 }
 
 /**
@@ -217,9 +297,16 @@ export function installFromBlueprint(options) {
       const targetBlueprintPath = join(targetDir, '.opencode', 'governance', 'blueprint.json');
       writeFileSync(targetBlueprintPath, JSON.stringify(blueprintJson, null, 2));
 
+      // Copy the rest of the blueprint directory (README.md and any other docs alongside
+      // blueprint.json) — overwrites the generic template placeholder installFromTemplate
+      // just installed, with the user's actual blueprint content.
+      const blueprintFiles = copyBlueprintDirectory(blueprintPath, targetDir, { projectName: name, projectDescription: description });
+
       return {
         ...installResult,
-        blueprint: blueprintJson,
+        generatedFiles: [...new Set([...installResult.generatedFiles, ...blueprintFiles])],
+        files: [...new Set([...installResult.generatedFiles, ...blueprintFiles])],
+        blueprint: blueprintFiles.length ? blueprintFiles : blueprintJson,
         blueprintPath: blueprintJsonPath,
       };
     } catch (error) {
@@ -260,14 +347,33 @@ export function installFromBlueprint(options) {
     template = 'saas-b2c';
   }
 
-  // Install using detected template
-  return installFromTemplate({
+  // Install using detected template (governance/skills backbone), then overlay the user's
+  // actual blueprint content on top — see copyBlueprintDirectory's doc comment for why this
+  // step exists: without it, none of the custom blueprint's own docs reach the project.
+  const name = projectName || extractProjectName(readmeContent);
+  const description = projectDescription || extractProjectDescription(readmeContent);
+
+  const installResult = installFromTemplate({
     template,
-    projectName: projectName || extractProjectName(readmeContent),
-    projectDescription: projectDescription || extractProjectDescription(readmeContent),
+    projectName: name,
+    projectDescription: description,
     criticalPhases: extractCriticalPhases(readmeContent),
     targetDir,
   });
+
+  if (!installResult.success) {
+    return installResult;
+  }
+
+  const blueprintFiles = copyBlueprintDirectory(blueprintPath, targetDir, { projectName: name, projectDescription: description });
+
+  return {
+    ...installResult,
+    generatedFiles: [...new Set([...installResult.generatedFiles, ...blueprintFiles])],
+    files: [...new Set([...installResult.generatedFiles, ...blueprintFiles])],
+    blueprint: blueprintFiles,
+    detectedTemplate: template,
+  };
 }
 
 /**

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "project": "fintech-angola",
+  "project": "my-project",
   "autonomyLevels": {
     "L1": {
       "name": "Routine",

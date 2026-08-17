@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     behaviorOS Gates - Validacao de gates de qualidade
@@ -29,6 +29,7 @@ param(
 $ErrorActionPreference = "Continue"
 $Script:ExitCode = 0
 $Script:FailedGates = @()
+$Script:SkippedGates = @()
 
 # Funcoes auxiliares
 function Write-Gate {
@@ -57,9 +58,15 @@ function Test-Gate {
     )
 
     Write-Gate $Name "RUN"
+    $Script:GateSkipped = $false
 
     try {
-        $result = & $Command
+        $null = & $Command
+        if ($Script:GateSkipped) {
+            Write-Gate $Name "SKIP"
+            $Script:SkippedGates += $Name
+            return $true
+        }
         if ($LASTEXITCODE -eq 0) {
             Write-Gate $Name "PASS"
             return $true
@@ -75,6 +82,12 @@ function Test-Gate {
         $Script:ExitCode = 1
         return $false
     }
+}
+
+function Skip-Gate {
+    param([string]$Reason = "")
+    Write-Host "  $Reason" -ForegroundColor Yellow
+    $Script:GateSkipped = $true
 }
 
 # Configuracao por fase
@@ -131,8 +144,7 @@ if ($config.Gates -contains "lint") {
         if (Test-Path "package.json") {
             pnpm lint
         } else {
-            Write-Host "package.json nao encontrado - a ignorar lint" -ForegroundColor Yellow
-            return $true
+            Skip-Gate "package.json nao encontrado - a ignorar lint"
         }
     }
 }
@@ -143,8 +155,7 @@ if ($config.Gates -contains "typecheck") {
         if (Test-Path "package.json") {
             pnpm typecheck
         } else {
-            Write-Host "package.json nao encontrado - a ignorar typecheck" -ForegroundColor Yellow
-            return $true
+            Skip-Gate "package.json nao encontrado - a ignorar typecheck"
         }
     }
 }
@@ -155,8 +166,7 @@ if ($config.Gates -contains "build") {
         if (Test-Path "package.json") {
             pnpm build
         } else {
-            Write-Host "package.json nao encontrado - a ignorar build" -ForegroundColor Yellow
-            return $true
+            Skip-Gate "package.json nao encontrado - a ignorar build"
         }
     }
 }
@@ -167,8 +177,7 @@ if ($config.Gates -contains "test" -and -not $SkipTests) {
         if (Test-Path "package.json") {
             pnpm test:unit
         } else {
-            Write-Host "package.json nao encontrado - a ignorar testes" -ForegroundColor Yellow
-            return $true
+            Skip-Gate "package.json nao encontrado - a ignorar testes"
         }
     }
 }
@@ -179,8 +188,7 @@ if ($config.Gates -contains "integration" -and -not $SkipTests) {
         if (Test-Path "package.json") {
             pnpm test:integration
         } else {
-            Write-Host "package.json nao encontrado - a ignorar testes" -ForegroundColor Yellow
-            return $true
+            Skip-Gate "package.json nao encontrado - a ignorar testes"
         }
     }
 }
@@ -191,8 +199,7 @@ if ($config.Gates -contains "e2e" -and -not $SkipTests) {
         if (Test-Path "package.json") {
             pnpm test:e2e
         } else {
-            Write-Host "package.json nao encontrado - a ignorar testes" -ForegroundColor Yellow
-            return $true
+            Skip-Gate "package.json nao encontrado - a ignorar testes"
         }
     }
 }
@@ -204,8 +211,7 @@ if ($config.Gates -contains "security") {
         if (Test-Path "package.json") {
             pnpm audit
         } else {
-            Write-Host "package.json nao encontrado - a ignorar security" -ForegroundColor Yellow
-            return $true
+            Skip-Gate "package.json nao encontrado - a ignorar security"
         }
     }
 }
@@ -217,7 +223,11 @@ Write-Host "RELATORIO DE GATES - FASE $Phase" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 
 if ($Script:ExitCode -eq 0) {
-    Write-Host "[OK] Todos os gates passaram" -ForegroundColor Green
+    if ($Script:SkippedGates.Count -gt 0) {
+        Write-Host "[WARN] Todos os gates passaram ( $($Script:SkippedGates.Count) skipped)" -ForegroundColor Yellow
+    } else {
+        Write-Host "[OK] Todos os gates passaram" -ForegroundColor Green
+    }
 } else {
     Write-Host "[FAIL] Gates que falharam:" -ForegroundColor Red
     foreach ($gate in $Script:FailedGates) {
@@ -226,7 +236,10 @@ if ($Script:ExitCode -eq 0) {
 }
 
 Write-Host ""
-Write-Host "Gates executados: $($config.Gates.Count)" -ForegroundColor Gray
+Write-Host "Gates executados: $($config.Gates.Count - $Script:SkippedGates.Count) / $($config.Gates.Count)" -ForegroundColor Gray
+if ($Script:SkippedGates.Count -gt 0) {
+    Write-Host "Gates skipped: $($Script:SkippedGates.Count) (package.json ausente)" -ForegroundColor Yellow
+}
 Write-Host "Coverage minimo: $($config.RequiredCoverage)" -ForegroundColor Gray
 
 exit $Script:ExitCode

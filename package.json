@@ -1,6 +1,6 @@
 {
   "name": "behaviorOS",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Autonomous Development Governance System",
   "main": "index.mjs",
   "type": "module",
@@ -10,8 +10,12 @@
     "validate": "node scripts/validate.mjs",
     "migrate": "node scripts/migrate.mjs",
     "test": "node --test tests/*.test.js",
-    "lint": "echo 'No linter configured'",
-    "prepublishOnly": "npm run validate"
+    "lint": "node scripts/lint.mjs",
+    "metrics": "node scripts/oage-metrics.mjs",
+    "handoff": "node scripts/handoff.mjs",
+    "evidence-check": "node scripts/evidence-check.mjs",
+    "audit-event": "node scripts/audit-event.mjs",
+    "prepublishOnly": "npm run validate && npm run lint"
   },
   "keywords": [
     "governance",
@@ -41,6 +45,8 @@
     "scripts/",
     "core/",
     "docs/",
+    ".opencode/plugins/",
+    ".opencode/commands/",
     "LICENSE",
     "README.md"
   ],

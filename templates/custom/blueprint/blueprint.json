@@ -1,0 +1,31 @@
+{
+  "name": "custom",
+  "description": "Custom project template",
+  "template": "custom",
+  "stack": {
+    "frontend": [
+      "nextjs",
+      "react",
+      "tailwind"
+    ],
+    "backend": [
+      "nestjs",
+      "prisma"
+    ],
+    "database": [
+      "prisma"
+    ],
+    "testing": [
+      "vitest"
+    ],
+    "devops": [
+      "turbo"
+    ]
+  },
+  "criticalPhases": [
+    "F2",
+    "F3",
+    "F5",
+    "F6"
+  ]
+}

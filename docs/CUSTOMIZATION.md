@@ -71,26 +71,28 @@ Controls autonomy levels and permissions.
 }
 ```
 
-### 3. Skill Gate (skill-gate.json)
+### 3. Skill Gate (skill-gate.json + skill-gate-auto.json)
 
 Controls which skills are required for each phase.
 
-**Location:** `.opencode/governance/skill-gate.json`
+**Locations:**
+- `.opencode/governance/skill-gate.json` — phase-based (used by PowerShell scripts)
+- `.opencode/governance/skill-gate-auto.json` — file-extension-based (used by plugin)
 
-**How to customize:**
+**How to customize (skill-gate-auto.json):**
 
 ```json
 {
-  "phases": {
-    "F0": {
-      "required": ["enterprise-architecture", "senior-fullstack", "turborepo"],
-      "optional": ["enterprise-devops"]
-    },
-    "F1": {
-      "required": ["nestjs", "prisma", "orpc", "your-custom-skill"],
-      "optional": ["vitest", "playwright"]
-    }
-  }
+  "enabled": true,
+  "requiredSkillsForPatterns": {
+    "*.prisma": ["prisma"],
+    "*.service.ts": ["enterprise-backend", "enterprise-database"],
+    "*.controller.ts": ["enterprise-backend", "nestjs"],
+    "*.component.tsx": ["react", "enterprise-frontend"],
+    "*.test.ts": ["enterprise-qa"]
+  },
+  "action": "warn",
+  "message": "Skill obrigatória para este tipo de arquivo não foi carregada."
 }
 ```
 
@@ -118,6 +120,43 @@ Controls tool validations.
     "forbidden": ["password", "secret", "token", "key"],
     "required": ["organizationId"]
   }
+}
+```
+
+### 4.1. Context7 Gate (context7-gate.json)
+
+Requires context7 documentation consultation before write/edit.
+
+**Location:** `.opencode/governance/context7-gate.json`
+
+**How to customize:**
+
+```json
+{
+  "enabled": true,
+  "checkBeforeWrite": true,
+  "auditEvent": "context7_queried",
+  "windowMinutes": 30,
+  "action": "warn",
+  "message": "Consulte a documentação atualizada via context7 antes de implementar."
+}
+```
+
+### 4.2. Version Pinning Gate (version-pinning-gate.json)
+
+Requires package.json verification before write/edit.
+
+**Location:** `.opencode/governance/version-pinning-gate.json`
+
+**How to customize:**
+
+```json
+{
+  "enabled": true,
+  "auditEvent": "version_verified",
+  "windowMinutes": 60,
+  "action": "warn",
+  "message": "Verifique a versão atual da biblioteca no package.json antes de implementar."
 }
 ```
 
@@ -354,16 +393,19 @@ cp -r templates/saas-b2b templates/my-custom
 
 Update each file in `templates/my-custom/governance/`:
 
-1. `opencode.json` — Agents and permissions
+1. `opencode.json` — Agents and permissions (no `governance` key — use plugin)
 2. `INSTRUCTIONS.md` — Custom rules
 3. `permissions-matrix.json` — Autonomy levels
-4. `skill-gate.json` — Required skills
-5. `tool-gate.json` — Tool validations
-6. `state-machine.json` — Phases
-7. `memory.json` — Memory sections
-8. `audit.json` — Audit configuration
-9. `security-gates.json` — Security rules
-10. `production-gate.json` — Production checks
+4. `skill-gate.json` — Required skills (phase-based)
+5. `skill-gate-auto.json` — Required skills (file-extension-based, used by plugin)
+6. `tool-gate.json` — Tool validations
+7. `state-machine.json` — Phases
+8. `memory.json` — Memory sections
+9. `audit.json` — Audit configuration
+10. `security-gates.json` — Security rules
+11. `production-gate.json` — Production checks
+12. `context7-gate.json` — Context7 requirement
+13. `version-pinning-gate.json` — Version pinning enforcement
 
 ### Step 3: Update Template Metadata
 
@@ -371,11 +413,14 @@ Edit `templates/my-custom/governance/opencode.json`:
 
 ```json
 {
+  "$schema": "https://opencode.ai/config.json",
   "project": "{{PROJECT_NAME}}",
   "description": "{{PROJECT_DESCRIPTION}}",
-  "governance": {
-    "criticalPhases": ["F2", "F3", "F-CUSTOM"]
-  }
+  "agent": {
+    "orchestrator": { "description": "Main orchestrator", "mode": "primary" }
+  },
+  "permission": { "bash": "ask", "edit": "allow" },
+  "plugin": []
 }
 ```
 

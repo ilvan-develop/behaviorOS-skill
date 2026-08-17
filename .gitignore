@@ -45,3 +45,15 @@ package-lock.json
 
 # pnpm
 pnpm-lock.yaml
+
+# OAGE runtime state — written by .opencode/plugins on every tool call. These are logs of
+# THIS machine's sessions (absolute local paths, and signatures from whatever project the
+# session touched), not source. Committing them leaks one project's activity into another's
+# history and guarantees merge conflicts on every run.
+.opencode/audit/audit.jsonl
+.opencode/audit/loop-state.json
+.opencode/audit/skills-loaded.json
+.opencode/audit/*.log
+.opencode/evidence/
+.opencode/handoffs/
+.opencode/logs/
