@@ -354,10 +354,15 @@ describe('Dogfood-found regressions', () => {
     const entry = ap.categories.security.find((e) => e.id === 'sec-hardcoded-secret');
     const re = new RegExp(entry.pattern, 'i');
 
-    // Assembled at runtime so no provider-shaped literal — nor a literal `name = "…"`
-    // assignment, which sec-hardcoded-secret also matches — exists in this file. Spelled out,
-    // it was a real leak: GitHub push protection rejects the push on "Stripe API Key".
+    // Assembled at runtime so the provider-shaped literal never exists in this file. Written
+    // out in full, it was a real leak: GitHub's push protection rejected the push on
+    // "Stripe API Key" at this line — while `lint.mjs --secrets-only` reported clean, because
+    // the scan exempted *.test.js on the grounds that fixtures are "deliberately shaped like
+    // a secret". A fixture does not need a scannable literal to prove the regex works, and
+    // the exemption is gone (see the regression test below).
     const stripeShaped = ['sk', 'live', `51H8xJ2KZQvGyD${'x'.repeat(13)}`].join('_');
+    // The assignment shape is built too: `name = "…"` written literally here would itself match
+    // sec-hardcoded-secret, now that the scanner no longer exempts test files.
     const assignment = (name) => `const ${name} = "${stripeShaped}";`;
 
     assert.ok(re.test(assignment('apiKey')), 'camelCase apiKey should be caught');
@@ -438,5 +443,104 @@ describe('Dogfood-found regressions', () => {
     assert.ok(/risk: CRITICAL/.test(afterAdvance), `Expected CRITICAL after phase change to F2, got: ${afterAdvance}`);
 
     cleanup();
+  });
+});
+
+describe('Anti-pattern precision (a critical rule must not fire on prose or on the kernel)', () => {
+  /** The db-destructive-without-gate rule, as shipped in both policy copies. */
+  function destructiveRule(governanceDir) {
+    const ap = JSON.parse(readFileSync(join(governanceDir, 'anti-patterns.json'), 'utf8'));
+    const entry = Object.values(ap.categories).flat().find((e) => e.id === 'db-destructive-without-gate');
+    assert.ok(entry, 'db-destructive-without-gate must exist');
+    return new RegExp(entry.pattern, 'is'); // same flags scripts/lint.mjs and the plugin use
+  }
+
+  const SOURCES = [
+    ['shipped template', join(ROOT_DIR, 'templates', 'base', 'governance')],
+    ['this repo', join(ROOT_DIR, '.opencode', 'governance')],
+  ];
+
+  const MUST_FLAG = [
+    'DROP TABLE users;',
+    'TRUNCATE TABLE payments;',
+    'TRUNCATE ledger_entries;',
+    'DELETE FROM users;',
+    'await prisma.$executeRaw(`TRUNCATE TABLE audit_log`)',
+  ];
+
+  // A bare `TRUNCATE` matched the word anywhere, so a critical rule blocked legitimate code —
+  // including the enforcer's own list of destructive shell verbs, which it must name in order
+  // to block them. An over-firing gate is what trains a model to route around governance.
+  const MUST_NOT_FLAG = [
+    'const MUTATORS = /rm|rmdir|truncate|shred|chmod/;',
+    'fs.truncate(filePath, 0)',
+    '// truncate the log file before writing',
+    'if (line.length > max) return truncate(line);',
+  ];
+
+  for (const [label, dir] of SOURCES) {
+    it(`${label}: still flags real destructive SQL`, () => {
+      const re = destructiveRule(dir);
+      for (const sql of MUST_FLAG) {
+        assert.ok(re.test(sql), `must flag: ${sql}`);
+      }
+    });
+
+    it(`${label}: does not flag code that merely names a destructive verb`, () => {
+      const re = destructiveRule(dir);
+      for (const code of MUST_NOT_FLAG) {
+        assert.ok(!re.test(code), `false positive: ${code}`);
+      }
+    });
+  }
+
+  it('both policy copies carry the same pattern', () => {
+    const [a, b] = SOURCES.map(([, dir]) => destructiveRule(dir).source);
+    assert.equal(a, b, 'templates/base and .opencode governance must not drift');
+  });
+});
+
+describe('Secret scan coverage (the scanner must not exempt the files most likely to carry a fixture)', () => {
+  it('scans test files for secrets', () => {
+    const lint = readFileSync(join(ROOT_DIR, 'scripts', 'lint.mjs'), 'utf8');
+    const secretScan = lint.slice(lint.indexOf('function checkSecrets'), lint.indexOf('function checkAntiPatterns'));
+    assert.ok(secretScan.length > 0, 'could not locate the secret scan in lint.mjs');
+    assert.doesNotMatch(
+      secretScan,
+      /^\s*if\s*\(\/\\.test\\.\(js\|mjs\|ts\)\$\/i\.test\(file\)\)\s*continue/m,
+      'the secret scan must not skip *.test.js — that exemption let a provider-shaped key reach a push',
+    );
+  });
+
+  it('detects a provider-shaped key inside a test file', () => {
+    // Proves the coverage claim above end to end rather than by reading the source: plant a
+    // throwaway *.test.js carrying a secret and confirm the scan fails on it.
+    const scanDir = join(__dirname, 'test-secret-scan');
+    const wipe = () => {
+      if (existsSync(scanDir)) rmSync(scanDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+    };
+
+    wipe();
+    mkdirSync(join(scanDir, '.opencode', 'governance'), { recursive: true });
+    writeFileSync(
+      join(scanDir, '.opencode', 'governance', 'anti-patterns.json'),
+      readFileSync(join(ROOT_DIR, 'templates', 'base', 'governance', 'anti-patterns.json')),
+    );
+
+    const planted = ['sk', 'live', `4eC39HqLyjWDarjtT1zdp7${'d'.repeat(8)}`].join('_');
+    writeFileSync(
+      join(scanDir, 'planted.test.js'),
+      `const apiKey${' = '}"${planted}";\nexport default apiKey;\n`,
+    );
+
+    const result = spawnSync(
+      process.execPath,
+      [join(ROOT_DIR, 'scripts', 'lint.mjs'), '--secrets-only'],
+      { cwd: scanDir, encoding: 'utf8' },
+    );
+
+    assert.notEqual(result.status, 0, 'a secret in a *.test.js file must fail the scan');
+    assert.match(`${result.stdout}${result.stderr}`, /sec-hardcoded-secret/);
+    wipe();
   });
 });

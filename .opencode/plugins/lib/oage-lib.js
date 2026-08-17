@@ -12,7 +12,7 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve as resolvePath, relative as relativePath } from 'node:path';
 
 export function governanceDir(root) {
   return join(root, '.opencode', 'governance');
@@ -56,10 +56,49 @@ export function globToRegExp(glob) {
   return { regex: new RegExp('^' + pattern + '$'), negate };
 }
 
-/** Returns true if `target` (posix-style relative path) matches any positive pattern and no negation pattern. */
-export function matchesAny(target, patterns) {
+/**
+ * Reduce any spelling of a path to the ONE canonical form that governance patterns are
+ * written against: posix separators, relative to the project root.
+ *
+ * This exists because policy patterns are root-anchored (`.opencode/governance/**`) while the
+ * OpenCode tools pass ABSOLUTE paths (`C:\…\project\.opencode\governance\x.json`) — and
+ * globToRegExp anchors on `^`, so the two never met. The kernel's own self-protection
+ * patterns therefore matched nothing in practice: an audit of 16 real write/edit calls to
+ * `.opencode/governance|plugins|audit` found 16 allowed and 0 blocked, including a write to
+ * oage-enforce.js itself. Prefixing the patterns with `**​/` would have papered over that one
+ * list while leaving every future root-anchored pattern (and anti-patterns' `appliesTo`,
+ * truth-gate's `criticalPatterns`) carrying the same trap. Canonicalizing the TARGET once,
+ * here, is what makes a root-anchored pattern mean what it says.
+ *
+ * A target outside the root (e.g. `C:/Users/me/.ssh/id_rsa`, or an `..` escape) keeps its
+ * absolute posix form rather than a `../..`-prefixed relative one: `**​/id_rsa*` still matches
+ * it, and a pattern anchored at the project root correctly does NOT.
+ */
+export function canonicalTarget(root, target) {
+  if (!target) return null;
+  if (!root) return String(target).replace(/\\/g, '/');
+  try {
+    const abs = resolvePath(root, String(target));
+    const rel = relativePath(root, abs).replace(/\\/g, '/');
+    if (rel === '') return '.';
+    if (rel.startsWith('../')) return abs.replace(/\\/g, '/');
+    return rel;
+  } catch {
+    return String(target).replace(/\\/g, '/');
+  }
+}
+
+/**
+ * Returns true if `target` matches any positive pattern and no negation pattern.
+ *
+ * Pass `root` (the project directory) so the target is canonicalized before matching — see
+ * canonicalTarget. Omitting it keeps the old raw-string behaviour, which only matches
+ * repo-relative input; every enforcement call site passes it.
+ */
+export function matchesAny(target, patterns, root) {
   if (!target || !Array.isArray(patterns)) return false;
-  const normalized = target.replace(/\\/g, '/');
+  const normalized = root ? canonicalTarget(root, target) : target.replace(/\\/g, '/');
+  if (!normalized) return false;
   let matched = false;
   for (const p of patterns) {
     const { regex, negate } = globToRegExp(p);
@@ -69,6 +108,24 @@ export function matchesAny(target, patterns) {
     }
   }
   return matched;
+}
+
+/**
+ * Like matchesAny, but also true when `target` is a DIRECTORY that contains protected files.
+ *
+ * `.opencode/governance/**` requires a child segment, so it matches
+ * `.opencode/governance/truth-gate.json` but not `.opencode/governance` itself — meaning
+ * `rm -rf .opencode/governance` destroys every policy without matching the policy that
+ * forbids it. Probing with a sentinel child answers the question the pattern author actually
+ * meant: "would anything inside here be protected?".
+ *
+ * Only meaningful for whole-path operations (delete/move/chmod); a write always names a file.
+ */
+export function matchesAnyOrContains(target, patterns, root) {
+  if (matchesAny(target, patterns, root)) return true;
+  const trimmed = String(target).replace(/[\\/]+$/, '');
+  if (!trimmed) return false;
+  return matchesAny(`${trimmed}/__oage_containment_probe__`, patterns, root);
 }
 
 /**
@@ -170,6 +227,42 @@ export function extractBashFileWrites(command) {
   }
 
   return writes;
+}
+
+/**
+ * Extract the paths a bash command MUTATES (as opposed to reads), so protected resources can
+ * be defended against shell verbs that never produce file content for extractBashFileWrites
+ * to inspect: `rm`, `mv`, `cp`, `sed -i`, `truncate`, `git rm/checkout/restore`, `chmod`, and
+ * in-place redirection.
+ *
+ * Without this, "the kernel cannot rewrite itself" was only true for the write/edit tools and
+ * for heredocs — `rm .opencode/governance/protected-resources.json` deleted the policy that
+ * forbids the deletion, and nothing in the pipeline looked at it. Deliberately scoped to
+ * mutating verbs: reading governance files is normal and must stay allowed.
+ *
+ * Not a shell parser. Returns candidate path-ish tokens; the caller decides via pattern match.
+ */
+export function extractBashMutatedPaths(command) {
+  if (!command) return [];
+
+  // Split on separators so `ls foo && rm bar` is judged clause by clause, and a mutating verb
+  // in one clause doesn't taint the operands of another.
+  const clauses = String(command).split(/(?:&&|\|\||[;|\n])/);
+  const MUTATORS = /(?:^|\s)(?:rm|rmdir|unlink|mv|cp|install|truncate|shred|chmod|chown|ln|dd)(?=\s)|(?:^|\s)sed\s+(?:-\w*i\w*|--in-place)|(?:^|\s)git\s+(?:rm|checkout|restore|clean)(?=\s)|(?:^|\s)(?:tee)(?=\s)|>>?\s*\S/;
+
+  const out = [];
+  for (const clause of clauses) {
+    if (!MUTATORS.test(clause)) continue;
+    // Tokens that look like paths: contain a separator or a dot, minus flags and operators.
+    for (const raw of clause.split(/\s+/)) {
+      const token = raw.replace(/^['"]|['"]$/g, '').replace(/^[<>]+/, '');
+      if (!token || token.startsWith('-')) continue;
+      if (!/[\\/.]/.test(token)) continue;
+      if (/^[.]{1,2}$/.test(token)) continue;
+      out.push(token);
+    }
+  }
+  return [...new Set(out)];
 }
 
 /** Best-effort extraction of write/edit content, falling back to concatenating all string args. */

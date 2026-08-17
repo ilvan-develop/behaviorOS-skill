@@ -23,6 +23,7 @@ import { join, isAbsolute } from 'node:path';
 import {
   loadGovernanceJSON,
   matchesAny,
+  matchesAnyOrContains,
   matchesCommand,
   appendAudit,
   readAuditEvents,
@@ -34,6 +35,7 @@ import {
   extractAgent,
   extractSessionID,
   extractBashFileWrites,
+  extractBashMutatedPaths,
   currentPhase,
   classifyOperation,
   detectTech,
@@ -91,7 +93,7 @@ function evaluateFileWrite(root, { tool, target, content, agent, sessionID, phas
 
   // Protected resources — ALWAYS block regardless of risk.
   const protectedCfg = loadGovernanceJSON(root, 'protected-resources.json');
-  if (protectedCfg?.enabled && target && matchesAny(target, protectedCfg.denyWritePatterns)) {
+  if (protectedCfg?.enabled && target && matchesAny(target, protectedCfg.denyWritePatterns, root)) {
     appendAudit(root, { event: 'blocked', gate: 'protected-resources', tool, target, agent, sessionID, phase, risk: risk.risk });
     throw new Error(`[OAGE] ${protectedCfg.message} (${target})`);
   }
@@ -102,7 +104,7 @@ function evaluateFileWrite(root, { tool, target, content, agent, sessionID, phas
     for (const [category, entries] of Object.entries(antiPatterns.categories || {})) {
       for (const entry of entries) {
         if (entry.detection !== 'regex' || !entry.pattern) continue;
-        if (entry.appliesTo && !matchesAny(target || '', [entry.appliesTo])) continue;
+        if (entry.appliesTo && !matchesAny(target || '', [entry.appliesTo], root)) continue;
         // Some patterns (e.g. "model X {" for db-schema-without-migration) can't tell
         // "changed an existing file" from "defined it for the first time" — every file of
         // that kind matches on creation. requireExistingFile scopes those to actual edits,
@@ -149,7 +151,7 @@ function evaluateFileWrite(root, { tool, target, content, agent, sessionID, phas
   const truthPolicy = policies.actions?.truth;
   if (truthPolicy?.action === 'require' && target) {
     const truthGate = loadGovernanceJSON(root, 'truth-gate.json');
-    if (truthGate?.enabled && matchesAny(target, truthGate.criticalPatterns)) {
+    if (truthGate?.enabled && matchesAny(target, truthGate.criticalPatterns, root)) {
       const minConf = truthPolicy.minConfidence || 80;
       const recent = readAuditEvents(root, {
         event: truthGate.requiredAuditEvent, windowMinutes: truthGate.windowMinutes || 30, sessionID,
@@ -302,7 +304,7 @@ export const OageEnforce = async (ctx) => {
       // ═══════════════════════════════════════════════════════════════════
       if (tool === 'read' && target) {
         const protectedCfg = loadGovernanceJSON(root, 'protected-resources.json');
-        if (protectedCfg?.enabled && matchesAny(target, protectedCfg.denyReadPatterns)) {
+        if (protectedCfg?.enabled && matchesAny(target, protectedCfg.denyReadPatterns, root)) {
           appendAudit(root, { event: 'blocked', gate: 'protected-resources', tool, target, agent, sessionID, phase, risk: 'CRITICAL' });
           throw new Error(`[OAGE] ${protectedCfg.message} (${target})`);
         }
@@ -345,7 +347,27 @@ export const OageEnforce = async (ctx) => {
           evaluateFileWrite(root, { tool: 'bash', target: w.target, content: w.content, agent, sessionID, phase });
         }
 
-        // 3b. Bash-specific anti-patterns (e.g. destructive git commands).
+        // 3b. Kernel integrity via shell verbs. A protected resource can be destroyed without
+        // ever producing file content (`rm`, `mv`, `sed -i`, `git checkout --`), so the
+        // content-based pipeline in 3a never sees it. Same policy list, applied to the paths
+        // the command mutates.
+        const protectedCfg = loadGovernanceJSON(root, 'protected-resources.json');
+        if (protectedCfg?.enabled) {
+          for (const mutated of extractBashMutatedPaths(command)) {
+            // Containment-aware: `rm -rf .opencode/governance` names the directory, not a file
+            // inside it, so a `…/**` pattern alone would let the whole policy set be deleted.
+            if (matchesAnyOrContains(mutated, protectedCfg.denyWritePatterns, root)) {
+              appendAudit(root, {
+                event: 'blocked', gate: 'protected-resources',
+                tool, target: mutated, command: command.substring(0, 200), agent, sessionID, phase, risk: 'CRITICAL',
+                note: 'shell verb mutating a protected resource',
+              });
+              throw new Error(`[OAGE] ${protectedCfg.message} (${mutated})`);
+            }
+          }
+        }
+
+        // 3c. Bash-specific anti-patterns (e.g. destructive git commands).
         const antiPatterns = loadGovernanceJSON(root, 'anti-patterns.json');
         for (const entry of antiPatterns?.categories?.git || []) {
           if (entry.detection !== 'regex' || !entry.pattern) continue;
@@ -357,7 +379,7 @@ export const OageEnforce = async (ctx) => {
           }
         }
 
-        // 3c. Dependency gate.
+        // 3d. Dependency gate.
         const depGate = loadGovernanceJSON(root, 'dependency-gate.json');
         if (depGate?.enabled) {
           const isInstall = matchesCommand(command, depGate.patterns) && !matchesCommand(command, depGate.exemptPatterns || []);
@@ -370,7 +392,7 @@ export const OageEnforce = async (ctx) => {
           }
         }
 
-        // 3d. Quality gates pre-commit (audit only — actual check runs client-side/CI).
+        // 3e. Quality gates pre-commit (audit only — actual check runs client-side/CI).
         if (/^git\s+commit\b/.test(command)) {
           const toolGate = loadGovernanceJSON(root, 'tool-gate.json');
           const commitRule = toolGate?.rules?.find((r) => r.id === 'git-commit');

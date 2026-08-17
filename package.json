@@ -6,10 +6,10 @@
   "type": "module",
   "scripts": {
     "init": "node scripts/init.mjs",
-    "install": "node scripts/install.mjs",
+    "setup": "node scripts/install.mjs",
     "validate": "node scripts/validate.mjs",
     "migrate": "node scripts/migrate.mjs",
-    "test": "node --test tests/*.test.js",
+    "test": "node --test \"tests/**/*.test.js\"",
     "lint": "node scripts/lint.mjs",
     "metrics": "node scripts/oage-metrics.mjs",
     "handoff": "node scripts/handoff.mjs",

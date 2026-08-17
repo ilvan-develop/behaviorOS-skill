@@ -86,7 +86,12 @@ function checkSecrets(root, errors) {
   let scanned = 0;
   for (const file of walk(root)) {
     if (/\.(env|pem|key)$/i.test(file)) continue; // protected-resources.json already denies these
-    if (/\.test\.(js|mjs|ts)$/i.test(file)) continue; // fixture data deliberately shaped like a secret, to test the scanner itself
+    // Test files are scanned like everything else. They used to be exempt — "fixture data
+    // deliberately shaped like a secret, to test the scanner itself" — and that exemption let
+    // a Stripe-shaped literal through to a push, which GitHub's push protection then rejected
+    // while this scan reported clean. A secret in a test file is still a leaked secret, and no
+    // fixture needs a scannable literal: assemble it at runtime instead (see the
+    // sec-hardcoded-secret test in tests/oage-gates.test.js).
     if (!/\.(js|mjs|ts|tsx|jsx|json|yml|yaml|env\.example)$/i.test(file)) continue;
     let content;
     try {

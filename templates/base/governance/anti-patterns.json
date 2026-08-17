@@ -60,7 +60,8 @@
         "name": "Operação destrutiva sem gate",
         "severity": "critical",
         "detection": "regex",
-        "pattern": "(DROP\\s+TABLE|TRUNCATE|DELETE\\s+FROM\\s+\\w+\\s*;)",
+        "pattern": "(DROP\\s+TABLE|TRUNCATE\\s+TABLE\\s+\\w+|TRUNCATE\\s+\\w+\\s*;|DELETE\\s+FROM\\s+\\w+\\s*;)",
+      "patternNote": "TRUNCATE requires a SQL operand (TABLE x, or x;). A bare TRUNCATE matched the word anywhere — including fs.truncate, prose, and the enforcer's own list of destructive shell verbs, which it must be able to name in order to block them.",
         "appliesTo": "*",
         "message": "DROP/TRUNCATE/DELETE em massa requer aprovação humana explícita."
       }

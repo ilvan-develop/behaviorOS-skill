@@ -1,5 +1,10 @@
 name: OAGE Governance CI
 
+# CI is the final authority (OAGE §34-36, §60): it re-checks policy and quality independently
+# of what an agent claims to have done. Every step below is fail-closed — a step that cannot
+# fail cannot be an authority, so "skip" is decided by inspecting package.json (scripts/ci-run.mjs),
+# never by swallowing an exit code.
+
 on:
   pull_request:
   push:
@@ -7,7 +12,7 @@ on:
 
 jobs:
   governance:
-    name: Governance & Quality Gates
+    name: Governance policy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,35 +23,78 @@ jobs:
 
       - name: Install dependencies
         run: |
-          if [ -f pnpm-lock.yaml ]; then corepack enable && pnpm install --frozen-lockfile
-          elif [ -f package-lock.json ]; then npm ci
-          else echo "No lockfile found, skipping install"; fi
+          set -euo pipefail
+          if [ -f pnpm-lock.yaml ]; then
+            corepack enable && pnpm install --frozen-lockfile
+          elif [ -f yarn.lock ]; then
+            corepack enable && yarn install --immutable
+          elif [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "No lockfile found — skipping dependency install"
+          fi
 
-      - name: Policy validation (behaviorOS governance)
+      - name: Policy validation
         run: node scripts/validate.mjs
 
       - name: Secret scan
         run: node scripts/lint.mjs --secrets-only
 
-      - name: Lint
-        run: (pnpm lint || npm run lint) 2>/dev/null || echo "No lint script configured, skipping"
+      - name: Critical anti-pattern scan
+        run: node scripts/lint.mjs --anti-patterns-only
 
-      - name: Typecheck
-        run: (pnpm typecheck || npm run typecheck) 2>/dev/null || echo "No typecheck script configured, skipping"
-
-      - name: Unit tests
-        run: (pnpm test || npm test) 2>/dev/null || echo "No test script configured, skipping"
-
-      - name: Build
-        run: (pnpm build || npm run build) 2>/dev/null || echo "No build script configured, skipping"
-
-  anti-pattern-scan:
-    name: Anti-Pattern Scan (critical)
+  quality:
+    name: Quality gates
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Scan diff for critical anti-patterns
-        run: node scripts/lint.mjs --anti-patterns-only
+
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          if [ -f pnpm-lock.yaml ]; then
+            corepack enable && pnpm install --frozen-lockfile
+          elif [ -f yarn.lock ]; then
+            corepack enable && yarn install --immutable
+          elif [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "No lockfile found — skipping dependency install"
+          fi
+
+      # Each step exits non-zero when the script exists and fails, and 0 only when the script
+      # is genuinely absent. See scripts/ci-run.mjs for why `|| echo skipping` is not usable.
+      - name: Lint
+        run: node scripts/ci-run.mjs lint
+
+      - name: Typecheck
+        run: node scripts/ci-run.mjs typecheck
+
+      - name: Tests
+        run: node scripts/ci-run.mjs test
+
+      - name: Build
+        run: node scripts/ci-run.mjs build
+
+  final-gate:
+    name: Final gate
+    runs-on: ubuntu-latest
+    needs: [governance, quality]
+    # Runs whatever happened upstream so the aggregate verdict is explicit in the log rather
+    # than inferred from which jobs are missing.
+    if: always()
+    steps:
+      - name: Verdict
+        run: |
+          set -euo pipefail
+          echo "governance: ${{ needs.governance.result }}"
+          echo "quality:    ${{ needs.quality.result }}"
+          if [ "${{ needs.governance.result }}" != "success" ] || [ "${{ needs.quality.result }}" != "success" ]; then
+            echo "::error::OAGE final gate FAILED — a governance or quality gate did not pass."
+            exit 1
+          fi
+          echo "OAGE final gate PASSED."
