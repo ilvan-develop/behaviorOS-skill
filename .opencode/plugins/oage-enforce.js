@@ -1,9 +1,7 @@
 /**
- * OAGE Enforcement Plugin v2 — Behavior Resolution Kernel
+ * OAGE Enforcement Plugin v2.1 — Behavior Resolution Kernel + Governance State
  *
- * Replaces the old gate-based enforcement with adaptive Behavior Resolution.
- * Risk is calculated by phase PROPERTIES (isCritical, position), NOT by phase IDs.
- * Risk level drives enforcement intensity per operation type.
+ * P1.2 addition: Context7 Gate now reads from governance-state.json instead of audit.jsonl.
  *
  * Architecture:
  *   Risk Assessment (risk-engine.json)
@@ -11,6 +9,9 @@
  *   → Grounding Evidence (protocol-engine.js)
  *   → Technology Detection (skill-engine.js)
  *   → Enforcement Decision (this file)
+ *
+ *   governance-state.json  ← SOURCE OF DECISION (TTL-based, session-scoped)
+ *   audit.jsonl            ← SOURCE OF EXPLANATION (append-only, historical)
  *
  * API: tool.execute.before(input, output) where input = { tool, sessionID, callID } and
  * output = { args }. Verified against the installed @opencode-ai/plugin types
@@ -34,6 +35,7 @@ import {
   extractSessionID,
   extractBashFileWrites,
   extractBashMutatedPaths,
+  extractInterpreterWrites,
   currentPhase,
   classifyOperation,
   detectTech,
@@ -45,6 +47,7 @@ import {
 } from './lib/oage-lib.js';
 import { detectTechnologies, resolveSkills } from './lib/skill-engine.js';
 import { evaluateRepetition } from './lib/loop-engine.js';
+import { getValidEntry } from './lib/governance-state.js';
 
 /**
  * Loop verdicts decided in `tool.execute.before`, waiting for `tool.execute.after` to hand them
@@ -149,18 +152,25 @@ function evaluateFileWrite(root, { tool, target, content, agent, sessionID, phas
     }
   }
 
-  // Context7 Gate — adaptive by risk.
+  // ═══════════════════════════════════════════════════════════════════════
+  // Context7 Gate — P1.2: reads from governance-state.json (SOURCE OF DECISION)
+  // instead of audit.jsonl (SOURCE OF EXPLANATION).
+  //
+  // Invariant I-03: expired state = absent. No fallback to audit trail.
+  // Invariant I-06: missing/corrupt state → DENY.
+  // ═══════════════════════════════════════════════════════════════════════
   const ctx7Policy = policies.actions?.context7;
   if (ctx7Policy?.action === 'require') {
-    const recentCtx7 = readAuditEvents(root, { event: 'context7_queried', windowMinutes: ctx7Policy.windowMinutes || 30, sessionID });
-    if (recentCtx7.length === 0) {
+    const validEntry = getValidEntry(root, 'context7', sessionID);
+    if (!validEntry) {
       appendAudit(root, {
         event: 'context7_missing', gate: 'context7-adaptive',
         tool, target, agent, sessionID, phase, risk: risk.risk,
-        note: `Context7 query required for ${operation} (risk: ${risk.risk})`,
+        note: `Context7 query required for ${operation} (risk: ${risk.risk}). Governance state: no valid entry found.`,
       });
       throw new Error(`[OAGE] Context7 obrigatório para ${operation} (risk: ${risk.risk}). Consulte docs antes de implementar.`);
     }
+    // Entry found and valid — gate satisfied via governance state.
   }
 
   // Truth Gate — adaptive by risk level.
@@ -421,6 +431,17 @@ export const OageEnforce = async (ctx) => {
                 note: 'shell verb mutating a protected resource',
               });
               throw new Error(`[OAGE] ${protectedCfg.message} (${mutated})`);
+            }
+          }
+
+          for (const interp of extractInterpreterWrites(command)) {
+            if (matchesAnyOrContains(interp, protectedCfg.denyWritePatterns, root)) {
+              appendAudit(root, {
+                event: 'blocked', gate: 'protected-resources',
+                tool, target: interp, command: command.substring(0, 200), agent, sessionID, phase, risk: 'CRITICAL',
+                note: 'interpreter writing protected resource',
+              });
+              throw new Error(`[OAGE] ${protectedCfg.message} (${interp})`);
             }
           }
         }
