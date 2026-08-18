@@ -1,6 +1,6 @@
 {
   "version": "3.0.0",
-  "description": "Skill tracking enforcement automático. Mapeia extensões de arquivo para skills obrigatórias. SUPERSEDED by Behavior Resolution kernel (policy-resolver.json).",
+  "description": "Skill tracking enforcement automático. Mapeia extensões de arquivo para skills obrigatórias. SUPERSEDED and disabled (enabled: false, action: 'off'). Declared unenforced as tracked debt (P1.5): automatic skill resolution stays hardcoded in .opencode/plugins/lib/skill-engine.js (KNOWN_TECHNOLOGIES tech-to-skills map) because this legacy pattern-to-skills map (incl. enterprise-* skills) has incompatible granularity with the runtime one-of skill gate in policy-resolver.json; consuming it would change gate semantics.",
   "enabled": false,
   "requiredSkillsForPatterns": {
     "*.prisma": ["prisma"],
