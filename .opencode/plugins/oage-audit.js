@@ -1,5 +1,5 @@
 /**
- * OAGE Audit Plugin v2 — Grounding Evidence Recorder
+ * OAGE Audit Plugin v2.1 — Grounding Evidence Recorder + Governance State Writer
  *
  * Records all tool calls AND detects specific events that serve as grounding evidence:
  *   - context7 queries → context7_queried (evidence of official docs)
@@ -10,15 +10,22 @@
  *   - read of test files → test_read (evidence of testing patterns)
  *   - read of schema files → schema_read (evidence of data model)
  *
+ * P1.2 addition: writes to governance-state.json for gates that depend on recent evidence.
+ * The audit trail and governance state receive the SAME event but remain INDEPENDENT.
+ *   - audit trail: SOURCE OF EXPLANATION (append-only, historical)
+ *   - governance state: SOURCE OF DECISION (TTL-based, session-scoped)
+ *
  * Grounding Evidence format:
  *   { event, evidenceType, source, confidence, target, agent, phase, risk }
  *
  * This feeds into the truth-gate and behavior resolution kernel.
  */
 
+import { createHash } from 'node:crypto';
 import { appendAudit, extractTarget, extractCommand, extractAgent, extractSessionID, currentPhase } from './lib/oage-lib.js';
 import { detectTechnologies } from './lib/skill-engine.js';
 import { detectPhase } from './lib/protocol-engine.js';
+import { loadState, addEntry, writeState } from './lib/governance-state.js';
 
 /**
  * Map tool + args to evidence type for grounding.
@@ -144,6 +151,32 @@ function classifyEvidence(tool, args, target, command) {
   return evidence;
 }
 
+/**
+ * Write to governance state when a gate-relevant event is detected.
+ * This is the P1.2 addition: governance state and audit trail receive the SAME event
+ * but remain INDEPENDENT.
+ *
+ * Writes to governance state for: context7, skill, version_verified, quality_check.
+ */
+function writeToGovernanceState(root, { gate, sessionID, operation, query, confidence, source }) {
+  try {
+    const projectId = requireProjectId(root);
+    const state = loadState(root, projectId);
+    const updated = addEntry(state, { gate, sessionID, operation, query, confidence, source });
+    writeState(root, updated);
+  } catch {
+    // Governance state write failure must not break the audit flow.
+    // The audit trail is still written; the gate will fail-closed on next read.
+  }
+}
+
+/**
+ * Best-effort projectId extraction. Uses the same logic as loop-engine.js.
+ */
+function requireProjectId(root) {
+  return createHash('sha256').update(String(root).replace(/\\/g, '/').toLowerCase()).digest('hex').slice(0, 12);
+}
+
 export const OageAudit = async (ctx) => {
   const root = ctx.directory || ctx.worktree || process.cwd();
 
@@ -195,26 +228,55 @@ export const OageAudit = async (ctx) => {
       }
 
       // ═══════════════════════════════════════════════════════════════════
-      // Legacy events (kept for backward compatibility with old gates)
+      // Legacy events + Governance State writes (P1.2)
+      //
+      // Both audit trail AND governance state receive the same event.
+      // They remain INDEPENDENT — audit explains, state decides.
       // ═══════════════════════════════════════════════════════════════════
       if (tool === 'context7_resolve-library-id' || tool === 'context7_query-docs') {
+        const query = args.libraryId || args.libraryName || args.query || target;
+
+        // Audit trail (SOURCE OF EXPLANATION)
         appendAudit(root, {
           event: 'context7_queried',
           tool,
-          target: args.libraryId || args.libraryName || args.query || target,
+          target: query,
           agent,
           sessionID,
           phase,
         });
+
+        // Governance state (SOURCE OF DECISION) — P1.2
+        writeToGovernanceState(root, {
+          gate: 'context7',
+          sessionID,
+          operation: 'context7-query',
+          query,
+          confidence: 90,
+          source: 'context7',
+        });
       }
 
       if (tool === 'skill') {
+        const skillName = args.name || args.skill || target;
+
+        // Audit trail
         appendAudit(root, {
           event: 'skill_load',
-          skill: args.name || args.skill || target,
+          skill: skillName,
           agent,
           sessionID,
           phase,
+        });
+
+        // Governance state — P1.2
+        writeToGovernanceState(root, {
+          gate: 'skill',
+          sessionID,
+          operation: 'skill-load',
+          query: skillName,
+          confidence: 85,
+          source: 'skill',
         });
       }
 
@@ -225,6 +287,16 @@ export const OageAudit = async (ctx) => {
           agent,
           sessionID,
           phase,
+        });
+
+        // Governance state — P1.2
+        writeToGovernanceState(root, {
+          gate: 'truth',
+          sessionID,
+          operation: 'version-verify',
+          query: target,
+          confidence: 100,
+          source: 'package.json',
         });
       }
 
