@@ -109,6 +109,9 @@ export function generateGovernance(config) {
     // Required by the installed CI workflow's quality steps — without it every consumer's
     // pipeline dies on "Cannot find module scripts/ci-run.mjs".
     'ci-run.mjs',
+    // Required by the installed CI workflow's gate check — without it the ci-gate-check step
+    // fails every consumer's pipeline on "Cannot find module scripts/ci-gate-check.mjs".
+    'ci-gate-check.mjs',
     // The Governance Contract ships with every project, so the tool that verifies it must too —
     // otherwise a project carries a declaration of authority it has no way to check.
     'governance-doctor.mjs',

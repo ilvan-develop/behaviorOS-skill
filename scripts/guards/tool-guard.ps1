@@ -42,6 +42,21 @@ $ProjectRoot = (Get-Location).Path
 $GovernanceDir = Join-Path (Join-Path $ProjectRoot ".opencode") "governance"
 $ToolGateFile = Join-Path $GovernanceDir "tool-gate.json"
 
+# Obter fase actual (F0-F6) para o registo no audit - o audit-logger.ps1 valida o parametro
+# -Phase contra F0-F6, por isso um valor invalido faria o registo BLOCKED ser perdido.
+$CurrentPhase = "F0"
+$StateMachineFile = Join-Path $GovernanceDir "state-machine.json"
+if (Test-Path $StateMachineFile) {
+    try {
+        $stateMachine = Get-Content $StateMachineFile -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($stateMachine.currentState -match '^F[0-6]$') {
+            $CurrentPhase = $stateMachine.currentState
+        }
+    } catch {
+        # mantem F0 como fallback - o bloqueio nunca deve depender do registo no audit
+    }
+}
+
 # Verificar se tool-gate.json existe
 if (-not (Test-Path $ToolGateFile)) {
     Write-Host "[WARN] tool-gate.json não encontrado - permitindo ação" -ForegroundColor Yellow
@@ -91,7 +106,7 @@ foreach ($rule in $toolGate.rules) {
                 $auditScript = Join-Path (Join-Path $PSScriptRoot "..") "audit-logger.ps1"
                 if (Test-Path $auditScript) {
                     $target = if ($Command) { $Command } else { $File }
-                    & $auditScript -Tool $Tool -File $target -Agent "unknown" -Phase "unknown" -Result "BLOCKED" -Gate "tool" -Message "Rule: $($rule.id)"
+                    & $auditScript -Tool $Tool -File $target -Agent "unknown" -Phase $CurrentPhase -Result "BLOCKED" -Gate "tool" -Message "Rule: $($rule.id)"
                 }
 
                 exit 1
@@ -106,7 +121,7 @@ foreach ($rule in $toolGate.rules) {
                 $auditScript = Join-Path (Join-Path $PSScriptRoot "..") "audit-logger.ps1"
                 if (Test-Path $auditScript) {
                     $target = if ($Command) { $Command } else { $File }
-                    & $auditScript -Tool $Tool -File $target -Agent "unknown" -Phase "unknown" -Result "BLOCKED" -Gate "tool" -Message "Rule: $($rule.id)"
+                    & $auditScript -Tool $Tool -File $target -Agent "unknown" -Phase $CurrentPhase -Result "BLOCKED" -Gate "tool" -Message "Rule: $($rule.id)"
                 }
 
                 exit 1
@@ -143,7 +158,7 @@ foreach ($rule in $toolGate.rules) {
                 $auditScript = Join-Path (Join-Path $PSScriptRoot "..") "audit-logger.ps1"
                 if (Test-Path $auditScript) {
                     $target = if ($Command) { $Command } else { $File }
-                    & $auditScript -Tool $Tool -File $target -Agent "unknown" -Phase "unknown" -Result "ASK" -Gate "tool" -Message "Rule: $($rule.id)"
+                    & $auditScript -Tool $Tool -File $target -Agent "unknown" -Phase $CurrentPhase -Result "ASK" -Gate "tool" -Message "Rule: $($rule.id)"
                 }
                 
                 # Bloquear execucao - aprovacao requerida
@@ -170,7 +185,7 @@ if ($toolGate.globalRules -and $toolGate.globalRules.forbiddenPatterns) {
                 # Registrar no audit
                 $auditScript = Join-Path (Join-Path $PSScriptRoot "..") "audit-logger.ps1"
                 if (Test-Path $auditScript) {
-                    & $auditScript -Tool $Tool -File $File -Agent "unknown" -Phase "unknown" -Result "BLOCKED" -Gate "tool" -Message "Forbidden pattern: $($forbidden.message)"
+                    & $auditScript -Tool $Tool -File $File -Agent "unknown" -Phase $CurrentPhase -Result "BLOCKED" -Gate "tool" -Message "Forbidden pattern: $($forbidden.message)"
                 }
                 
                 exit 1
@@ -192,7 +207,7 @@ if ($toolGate.globalRules -and $toolGate.globalRules.requiredPatterns) {
                 # Registrar warn no audit
                 $auditScript = Join-Path (Join-Path $PSScriptRoot "..") "audit-logger.ps1"
                 if (Test-Path $auditScript) {
-                    & $auditScript -Tool $Tool -File $File -Agent "unknown" -Phase "unknown" -Result "WARN" -Gate "tool" -Message "Missing pattern: $($required.message)"
+                    & $auditScript -Tool $Tool -File $File -Agent "unknown" -Phase $CurrentPhase -Result "WARN" -Gate "tool" -Message "Missing pattern: $($required.message)"
                 }
                 
                 # Não bloquear, apenas avisar
