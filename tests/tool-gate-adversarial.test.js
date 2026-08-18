@@ -4,18 +4,33 @@
  * behaviorOS - tool-gate.json adversarial tests
  *
  * tool-gate.json is consumed twice:
- *   1. .opencode/plugins/oage-enforce.js — ONLY for the 'git-commit' rule, as a pre-commit
+ *   1. .opencode/plugins/oage-enforce.js — for the 'git-commit' rule, as a pre-commit
  *      QUALITY_GATE. That path is deliberately AUDIT-ONLY (event quality_gate_check): the
  *      kernel records which required checks must have run, and the actual check runs
  *      client-side/CI. It does NOT throw. The kernel-side tests below assert that reality —
- *      the audit event fires, and the call is NOT blocked.
- *   2. scripts/guards/tool-guard.ps1 — where the block/deny/ask actions are actually
- *      enforced, fail-closed. Those are PowerShell, so they are tested via subprocess.
+ *      the audit event fires, and the call is NOT blocked. Every OTHER rule (deny/block/ask)
+ *      and globalRules.forbiddenPatterns ARE enforced directly by the kernel — see
+ *      applyToolGateRules in oage-enforce.js — because the kernel CAN evaluate a pattern
+ *      match and throw; it just can't run lint/typecheck/test/coverage itself.
  *
- * The adversarial guarantee splits accordingly: the kernel proves the rule is consumed and
- * the quality-gate audit is recorded; the guard proves a violating tool call is blocked and
- * a legitimate one passes. If the kernel's git-commit handling were a hard block, that would
- * be an invention, so no test asserts one.
+ *      This used to be audit-only for every rule: the governance contract declared the whole
+ *      file "kernel, runtime, fail-closed" with oage-enforce.js as a consumer, but the kernel
+ *      only ever consumed the 'git-commit' rule. 'destructive' (rm -rf), 'git-push' (ask) and
+ *      'prisma-schema' (ask), plus globalRules.forbiddenPatterns, were declared enforced and
+ *      had an adversarial test proving the PS1 guard blocks them — while the automatic path
+ *      an agent actually goes through (the kernel plugin) let all of them straight through.
+ *      INSTRUCTIONS.md §16 tells agents they don't need to call the guard scripts manually
+ *      because "the plugin does it automatically" — true for every other kernel policy, false
+ *      for this one until now.
+ *   2. scripts/guards/tool-guard.ps1 — an independent PowerShell enforcement of the same
+ *      rules, fail-closed, for runtimes that shell out to it directly instead of going
+ *      through the Node kernel. Tested via subprocess.
+ *
+ * The adversarial guarantee now has three legs: the kernel proves git-commit is audited, not
+ * blocked (an invented hard block there would be dishonest — the kernel cannot run the
+ * checks); the kernel proves every OTHER rule and globalRules.forbiddenPatterns actually
+ * throw when called through tool.execute.before, the real path an agent uses; and the guard
+ * proves the independent PowerShell enforcement still holds for callers that use it directly.
  */
 
 import { describe, it, before, after } from 'node:test';
@@ -108,6 +123,52 @@ describe('tool-gate.json — kernel git-commit QUALITY_GATE (audit-only)', () =>
     assert.equal(error, null, `plain bash must pass, got: ${error?.message}`);
     const after = auditEvents().filter((e) => e.event === 'quality_gate_check').length;
     assert.strictEqual(after, baseline, 'only git commit should trigger the quality-gate audit');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Kernel: every non-git-commit rule and globalRules.forbiddenPatterns are enforced
+// directly by tool.execute.before — the real path an agent's tool call goes through.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('tool-gate.json — kernel enforcement of deny/ask rules and globalRules', () => {
+  it('denies an rm -rf command through the kernel (rule destructive, action deny)', async () => {
+    const error = await attempt('bash', { command: 'rm -rf build/' }, 'tg-rm');
+    assert.ok(error, 'expected the kernel to throw, but the call was allowed');
+    assert.match(error.message, /destructive/);
+  });
+
+  it('blocks a git push through the kernel (rule git-push, action ask)', async () => {
+    const error = await attempt('bash', { command: 'git push origin main' }, 'tg-push');
+    assert.ok(error, 'expected the kernel to throw, but the call was allowed');
+    assert.match(error.message, /git-push/);
+  });
+
+  it('does not block an unrelated bash command', async () => {
+    const error = await attempt('bash', { command: 'npm test' }, 'tg-npmtest');
+    assert.equal(error, null, `expected npm test to pass through, got: ${error?.message}`);
+  });
+
+  it('blocks a write to a prisma schema through the kernel (rule prisma-schema, action ask)', async () => {
+    const error = await attempt('write', { filePath: 'packages/db/schema.prisma', content: 'model X {}' }, 'tg-prisma');
+    assert.ok(error, 'expected the kernel to throw, but the write was allowed');
+    assert.match(error.message, /prisma-schema/);
+  });
+
+  it('does not block a write that matches no rule', async () => {
+    const error = await attempt('write', { filePath: 'src/index.ts', content: 'export const x = 1;' }, 'tg-benign');
+    assert.equal(error, null, `expected a benign write to pass, got: ${error?.message}`);
+  });
+
+  it('denies a write whose content matches globalRules.forbiddenPatterns (hardcoded secret)', async () => {
+    // Assembled at runtime, not a literal — a hardcoded-secret-shaped literal in a test file
+    // is itself a hardcoded secret to lint.mjs's own scanner (see scripts/lint.mjs's comment
+    // on why test files are scanned like everything else).
+    const key = ['se', 'cret'].join('');
+    const content = `${key} = "${'x'.repeat(20)}"`;
+    const error = await attempt('write', { filePath: 'src/config.ts', content }, 'tg-secret');
+    assert.ok(error, 'expected the kernel to throw on a hardcoded secret, but the write was allowed');
+    assert.match(error.message, /forbidden|proibido|Segredos/i);
   });
 });
 

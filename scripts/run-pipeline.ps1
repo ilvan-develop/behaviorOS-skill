@@ -29,7 +29,13 @@ param(
 
     [string]$Scope,
 
-    [switch]$DryRun
+    [switch]$DryRun,
+
+    # Who is driving this phase. Defaults to "orchestrator" (allowed in every phase's
+    # allowedAgents in the shipped templates) so existing ".\run-pipeline.ps1 -Phase F0"
+    # invocations keep working unchanged.
+    [ValidateSet("orchestrator", "architect", "planner", "backend", "frontend", "database", "qa", "security", "devops", "compliance")]
+    [string]$Agent = "orchestrator"
 )
 
 $ErrorActionPreference = "Stop"
@@ -173,6 +179,22 @@ if (-not $phaseConfig) {
     Write-Log "Agentes permitidos: $($allowedAgents -join ', ')"
     Write-Log "Aprovacoes requeridas: $($phaseData.requiredApprovals)"
     Add-AuditEntry "PERMISSIONS_CHECK" "Agentes: $($allowedAgents -join ', ')"
+}
+
+# Aplicar a matriz, nao so a ler: permission-guard.ps1 e o unico consumer real de
+# permissions-matrix.json, e ate aqui o pipeline lia e mostrava allowedAgents sem nunca
+# comparar contra quem esta a executar nem abortar — a politica era "enforced, fail-closed"
+# na governanca mas inerte no unico caminho automatico que a devia aplicar.
+$PermissionGuard = Join-Path $ScriptsDir "guards\permission-guard.ps1"
+if (Test-Path $PermissionGuard) {
+    & $PermissionGuard -Agent $Agent -Phase $Phase
+    $permissionExit = $LASTEXITCODE
+    if ($permissionExit -ne 0) {
+        Add-AuditEntry "PERMISSIONS_BLOCKED" "Agente '$Agent' bloqueado na fase $Phase"
+        throw "permission-guard.ps1 bloqueou o agente '$Agent' na fase $Phase"
+    }
+} else {
+    Write-Log "permission-guard.ps1 nao encontrado - permissoes nao aplicadas" "WARN"
 }
 
 # ─────────────────────────────────────────────────────────

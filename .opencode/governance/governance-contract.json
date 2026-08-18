@@ -202,7 +202,8 @@
       "adversarialTests": [
         "tests/tool-gate-adversarial.test.js"
       ],
-      "ci": []
+      "ci": [],
+      "note": "oage-enforce.js applies rules[] (deny/block/ask/allow) and globalRules.forbiddenPatterns directly in tool.execute.before, for every rule except 'git-commit' — the kernel cannot run lint/typecheck/test/coverage itself, so that one rule stays audit-only (event quality_gate_check). Until this was wired in, only tool-guard.ps1 (a script nothing calls automatically) enforced deny/ask, so 'destructive'/'git-push'/'prisma-schema' and forbiddenPatterns were declared enforced but live-inert."
     },
     "state-machine.json": {
       "authority": "kernel",

@@ -90,6 +90,79 @@ function fileExists(root, target) {
 }
 
 /**
+ * tool-gate.json's rules[] (deny/block/ask/allow, matched by tool+pattern) and
+ * globalRules.forbiddenPatterns/requiredPatterns.
+ *
+ * Previously the kernel consumed tool-gate.json ONLY for the 'git-commit' rule (audit-only,
+ * see PHASE 3e below) — despite the governance contract declaring the whole file "kernel,
+ * runtime, fail-closed" with oage-enforce.js as a consumer. The 'destructive' (rm -rf),
+ * 'git-push' (ask) and 'prisma-schema' (ask) rules, plus globalRules.forbiddenPatterns
+ * (hardcoded password/secret), had exactly one real consumer: scripts/guards/tool-guard.ps1.
+ * Nothing calls that script automatically — INSTRUCTIONS.md §16 explicitly tells agents not
+ * to ("o plugin faz isso automaticamente"), which was true for every OTHER kernel policy but
+ * not this one, so those rules were live-inert: declared enforced, adversarially tested via
+ * subprocess against the PS1 guard in isolation, never actually applied to a real tool call.
+ *
+ * 'git-commit' stays a special case, handled separately in PHASE 3e: the kernel cannot itself
+ * run lint/typecheck/test/coverage, so blocking on that rule here would invent an enforcement
+ * the kernel cannot actually perform — it only audits which checks are required.
+ *
+ * Mirrors tool-guard.ps1's matching (first rule wins; 'allow' stops the search early) so the
+ * same policy blocks the same way whether an agent goes through the kernel or the PS1 guard.
+ */
+function applyToolGateRules(root, { tool, target, command, content, agent, sessionID, phase }) {
+  const cfg = loadGovernanceJSON(root, 'tool-gate.json');
+  if (!cfg?.enabled) return;
+
+  for (const rule of cfg.rules || []) {
+    if (rule.id === 'git-commit') continue; // audit-only, see PHASE 3e
+    if (rule.tool !== tool) continue;
+
+    const matched = tool === 'bash'
+      ? Boolean(command) && matchesCommand(command, [rule.pattern || '*'])
+      : Boolean(target) && matchesAny(target, [rule.pattern || '*'], root);
+    if (!matched) continue;
+
+    if (rule.action === 'allow') {
+      appendAudit(root, { event: 'tool_gate_allow', gate: 'tool-gate', ruleId: rule.id, tool, target, command: command?.substring(0, 200), agent, sessionID, phase });
+      return;
+    }
+
+    appendAudit(root, {
+      event: 'blocked', gate: 'tool-gate', ruleId: rule.id, action: rule.action,
+      tool, target, command: command?.substring(0, 200), agent, sessionID, phase,
+    });
+    const what = command ? `: ${command.substring(0, 120)}` : target ? `: ${target}` : '';
+    const verb = rule.action === 'ask' ? 'requer aprovação humana' : 'negada';
+    throw new Error(`[OAGE] tool-gate "${rule.id}": ação ${verb} (${tool}${what}).`);
+  }
+
+  // globalRules are content-based, so only meaningful when there is content to inspect.
+  if (!content) return;
+
+  for (const forbidden of cfg.globalRules?.forbiddenPatterns || []) {
+    if (!forbidden.pattern) continue;
+    let re;
+    try { re = new RegExp(forbidden.pattern, 'is'); } catch { continue; }
+    if (re.test(content)) {
+      appendAudit(root, { event: 'blocked', gate: 'tool-gate', ruleId: 'globalRules.forbiddenPatterns', tool, target, agent, sessionID, phase, message: forbidden.message });
+      throw new Error(`[OAGE] tool-gate: ${forbidden.message || 'padrão proibido'} (${target}).`);
+    }
+  }
+
+  for (const required of cfg.globalRules?.requiredPatterns || []) {
+    if (!required.pattern || !required.filePattern) continue;
+    if (!target || !matchesAny(target, [required.filePattern], root)) continue;
+    let re;
+    try { re = new RegExp(required.pattern); } catch { continue; }
+    if (!re.test(content)) {
+      // Warn only — tool-guard.ps1 does not block on requiredPatterns either.
+      appendAudit(root, { event: 'tool_gate_warn', gate: 'tool-gate', ruleId: 'globalRules.requiredPatterns', tool, target, agent, sessionID, phase, message: required.message });
+    }
+  }
+}
+
+/**
  * Full Behavior Resolution pipeline for a single (target, content) file write — shared by
  * the write/edit tools AND by file writes embedded in a bash command (heredoc/redirection),
  * so a model can't bypass anti-patterns, protected-resources, context7/skill/knowledge
@@ -116,6 +189,11 @@ function evaluateFileWrite(root, { tool, target, content, agent, sessionID, phas
     appendAudit(root, { event: 'blocked', gate: 'protected-resources', tool, target, agent, sessionID, phase, risk: risk.risk });
     throw new Error(`[OAGE] ${protectedCfg.message} (${target})`);
   }
+
+  // Tool gate — file-pattern rules (e.g. *.prisma → ask) and content-based globalRules
+  // (e.g. hardcoded password/secret → deny). See applyToolGateRules for why this wasn't
+  // wired in before.
+  applyToolGateRules(root, { tool, target, content, agent, sessionID, phase });
 
   // Anti-pattern content scan.
   const antiPatterns = loadGovernanceJSON(root, 'anti-patterns.json');
@@ -483,6 +561,10 @@ export const OageEnforce = async (ctx) => {
             });
           }
         }
+
+        // 3f. Tool gate — command-pattern rules (e.g. rm -rf → deny, git push → ask).
+        // Excludes 'git-commit', handled as audit-only above. See applyToolGateRules.
+        applyToolGateRules(root, { tool, command, agent, sessionID, phase });
       }
 
       // ═══════════════════════════════════════════════════════════════════
