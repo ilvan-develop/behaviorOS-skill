@@ -147,6 +147,38 @@ function checkAntiPatterns(root, errors) {
   return scanned;
 }
 
+function checkSecurityGates(root, errors) {
+  const gatesPath = join(root, '.opencode', 'governance', 'security-gates.json');
+  if (!existsSync(gatesPath)) return 0;
+  let gates;
+  try {
+    gates = JSON.parse(readFileSync(gatesPath, 'utf8'));
+  } catch {
+    return 0;
+  }
+  if (!gates?.enabled || !Array.isArray(gates.rules)) return 0;
+
+  let scanned = 0;
+  for (const file of walk(root)) {
+    if (/\.test\.(js|mjs|ts)$/i.test(file)) continue;
+    if (!/\.(js|mjs|ts|tsx|jsx|prisma)$/i.test(file)) continue;
+    let content;
+    try {
+      content = readFileSync(file, 'utf8');
+    } catch {
+      continue;
+    }
+    scanned++;
+    for (const rule of gates.rules) {
+      if (!rule?.pattern || !['deny', 'block'].includes(rule.action)) continue;
+      if (new RegExp(rule.pattern, 'is').test(content)) {
+        errors.push(`Security gate "${rule.name || rule.id}" [${rule.id}]: ${relative(root, file)}`);
+      }
+    }
+  }
+  return scanned;
+}
+
 function main() {
   const root = process.cwd();
   const secretsOnly = process.argv.includes('--secrets-only');
@@ -167,6 +199,11 @@ function main() {
   if (!secretsOnly) {
     const scanned = checkAntiPatterns(root, errors);
     summary.push(`Files scanned for critical anti-patterns: ${scanned}`);
+  }
+
+  if (!secretsOnly) {
+    const scanned = checkSecurityGates(root, errors);
+    summary.push(`Files scanned for security gates: ${scanned}`);
   }
 
   console.log('=== behaviorOS lint ===');

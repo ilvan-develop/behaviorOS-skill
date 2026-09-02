@@ -2,7 +2,6 @@
   "version": "1.0.0",
   "description": "Governance Contract (OAGE P1.0). Declares, for every policy file, WHO has the authority to apply it and HOW that authority is proven. A policy is not enforcement until the chain Policy -> Consumer -> Enforcement -> Adversarial Test -> CI exists; this file is where the chain is declared, and scripts/governance-doctor.mjs is what confronts the declaration with reality.",
   "enabled": true,
-
   "authorities": {
     "kernel": "Runtime enforcement inside .opencode/plugins. Blocks the tool call itself, before it happens.",
     "phase": "Enforced at a phase boundary (completion/review), by scripts that take --phase.",
@@ -10,34 +9,37 @@
     "ci": "Enforced by CI, independently of anything the agent claims.",
     "declarative": "Not enforced. Configuration or documentation consumed by tooling."
   },
-
   "enforcementModes": {
     "runtime": "Read by a plugin on tool.execute.before / .after.",
     "phase": "Read by evidence-check / reviewer-check / state-manager at a phase transition.",
     "ci": "Read by the CI workflow.",
     "declarative": "Read only by generators, installers or validators."
   },
-
   "failureModes": {
     "fail-closed": "Violation blocks the operation.",
     "escalate": "Violation warns and escalates to human review rather than blocking outright.",
     "none": "Nothing to fail — declarative only."
   },
-
   "statuses": {
     "enforced": "A real consumer applies this policy. The doctor verifies the consumer exists and references it.",
     "unenforced": "Declared intent with no consumer yet. A tracked gap: the doctor reports UNENFORCED_POLICY."
   },
-
   "policies": {
     "protected-resources.json": {
       "authority": "kernel",
       "enforcementMode": "runtime",
       "failureMode": "fail-closed",
       "status": "enforced",
-      "consumers": [".opencode/plugins/oage-enforce.js", "scripts/lint.mjs"],
-      "adversarialTests": ["tests/kernel-self-protection.test.js"],
-      "ci": [".github/workflows/oage-ci.yml"],
+      "consumers": [
+        ".opencode/plugins/oage-enforce.js",
+        "scripts/lint.mjs"
+      ],
+      "adversarialTests": [
+        "tests/kernel-self-protection.test.js"
+      ],
+      "ci": [
+        ".github/workflows/oage-ci.yml"
+      ],
       "note": "KERNEL_SELF_PROTECTION. The one policy that guards the kernel against itself."
     },
     "anti-patterns.json": {
@@ -45,17 +47,28 @@
       "enforcementMode": "runtime",
       "failureMode": "fail-closed",
       "status": "enforced",
-      "consumers": [".opencode/plugins/oage-enforce.js", "scripts/lint.mjs"],
-      "adversarialTests": ["tests/oage-gates.test.js"],
-      "ci": [".github/workflows/oage-ci.yml"]
+      "consumers": [
+        ".opencode/plugins/oage-enforce.js",
+        "scripts/lint.mjs"
+      ],
+      "adversarialTests": [
+        "tests/oage-gates.test.js"
+      ],
+      "ci": [
+        ".github/workflows/oage-ci.yml"
+      ]
     },
     "risk-engine.json": {
       "authority": "kernel",
       "enforcementMode": "runtime",
       "failureMode": "fail-closed",
       "status": "enforced",
-      "consumers": [".opencode/plugins/lib/risk-engine.js"],
-      "adversarialTests": ["tests/oage-gates.test.js"],
+      "consumers": [
+        ".opencode/plugins/lib/risk-engine.js"
+      ],
+      "adversarialTests": [
+        "tests/oage-gates.test.js"
+      ],
       "ci": []
     },
     "behavior-contract.json": {
@@ -63,8 +76,12 @@
       "enforcementMode": "runtime",
       "failureMode": "fail-closed",
       "status": "enforced",
-      "consumers": [".opencode/plugins/lib/risk-engine.js"],
-      "adversarialTests": ["tests/oage-gates.test.js"],
+      "consumers": [
+        ".opencode/plugins/lib/risk-engine.js"
+      ],
+      "adversarialTests": [
+        "tests/oage-gates.test.js"
+      ],
       "ci": [],
       "note": "Supplies riskEscalation, which is why a critical phase raises HIGH to CRITICAL."
     },
@@ -73,8 +90,12 @@
       "enforcementMode": "runtime",
       "failureMode": "fail-closed",
       "status": "enforced",
-      "consumers": [".opencode/plugins/lib/policy-resolver.js"],
-      "adversarialTests": ["tests/oage-gates.test.js"],
+      "consumers": [
+        ".opencode/plugins/lib/policy-resolver.js"
+      ],
+      "adversarialTests": [
+        "tests/oage-gates.test.js"
+      ],
       "ci": [],
       "note": "The real source of the context7/truth/skill/knowledge action policies — not context7-gate.json or skill-gate.json."
     },
@@ -83,7 +104,9 @@
       "enforcementMode": "runtime",
       "failureMode": "escalate",
       "status": "enforced",
-      "consumers": [".opencode/plugins/lib/protocol-engine.js"],
+      "consumers": [
+        ".opencode/plugins/lib/protocol-engine.js"
+      ],
       "adversarialTests": [],
       "ci": []
     },
@@ -92,7 +115,9 @@
       "enforcementMode": "runtime",
       "failureMode": "escalate",
       "status": "enforced",
-      "consumers": [".opencode/plugins/lib/protocol-engine.js"],
+      "consumers": [
+        ".opencode/plugins/lib/protocol-engine.js"
+      ],
       "adversarialTests": [],
       "ci": []
     },
@@ -101,9 +126,16 @@
       "enforcementMode": "runtime",
       "failureMode": "escalate",
       "status": "enforced",
-      "consumers": [".opencode/plugins/oage-enforce.js", ".opencode/plugins/lib/loop-engine.js"],
-      "adversarialTests": ["tests/loop-governance.test.js"],
-      "ci": [".github/workflows/oage-ci.yml"],
+      "consumers": [
+        ".opencode/plugins/oage-enforce.js",
+        ".opencode/plugins/lib/loop-engine.js"
+      ],
+      "adversarialTests": [
+        "tests/loop-governance.test.js"
+      ],
+      "ci": [
+        ".github/workflows/oage-ci.yml"
+      ],
       "note": "P1.1: scores behavioural risk instead of counting calls, and the WARN -> ESCALATE -> BLOCK ladder now matches this failureMode. Previously it blocked outright on the 4th identical attempt, was reachable only from bash (write/edit returned from the before hook first), and keyed on the raw target so re-spelling a path evaded it."
     },
     "dependency-gate.json": {
@@ -111,8 +143,12 @@
       "enforcementMode": "runtime",
       "failureMode": "fail-closed",
       "status": "enforced",
-      "consumers": [".opencode/plugins/oage-enforce.js"],
-      "adversarialTests": ["tests/oage-gates.test.js"],
+      "consumers": [
+        ".opencode/plugins/oage-enforce.js"
+      ],
+      "adversarialTests": [
+        "tests/oage-gates.test.js"
+      ],
       "ci": []
     },
     "truth-gate.json": {
@@ -120,8 +156,12 @@
       "enforcementMode": "runtime",
       "failureMode": "fail-closed",
       "status": "enforced",
-      "consumers": [".opencode/plugins/oage-enforce.js"],
-      "adversarialTests": ["tests/oage-gates.test.js"],
+      "consumers": [
+        ".opencode/plugins/oage-enforce.js"
+      ],
+      "adversarialTests": [
+        "tests/oage-gates.test.js"
+      ],
       "ci": []
     },
     "version-pinning-gate.json": {
@@ -129,8 +169,12 @@
       "enforcementMode": "runtime",
       "failureMode": "fail-closed",
       "status": "enforced",
-      "consumers": [".opencode/plugins/oage-enforce.js"],
-      "adversarialTests": [],
+      "consumers": [
+        ".opencode/plugins/oage-enforce.js"
+      ],
+      "adversarialTests": [
+        "tests/version-pinning-adversarial.test.js"
+      ],
       "ci": []
     },
     "version-registry.json": {
@@ -138,8 +182,12 @@
       "enforcementMode": "runtime",
       "failureMode": "fail-closed",
       "status": "enforced",
-      "consumers": [".opencode/plugins/oage-enforce.js"],
-      "adversarialTests": [],
+      "consumers": [
+        ".opencode/plugins/oage-enforce.js"
+      ],
+      "adversarialTests": [
+        "tests/version-pinning-adversarial.test.js"
+      ],
       "ci": []
     },
     "tool-gate.json": {
@@ -147,17 +195,29 @@
       "enforcementMode": "runtime",
       "failureMode": "fail-closed",
       "status": "enforced",
-      "consumers": [".opencode/plugins/oage-enforce.js", "scripts/guards/tool-guard.ps1"],
-      "adversarialTests": [],
-      "ci": []
+      "consumers": [
+        ".opencode/plugins/oage-enforce.js",
+        "scripts/guards/tool-guard.ps1"
+      ],
+      "adversarialTests": [
+        "tests/tool-gate-adversarial.test.js"
+      ],
+      "ci": [],
+      "note": "oage-enforce.js applies rules[] (deny/block/ask/allow) and globalRules.forbiddenPatterns directly in tool.execute.before, for every rule except 'git-commit' — the kernel cannot run lint/typecheck/test/coverage itself, so that one rule stays audit-only (event quality_gate_check). Until this was wired in, only tool-guard.ps1 (a script nothing calls automatically) enforced deny/ask, so 'destructive'/'git-push'/'prisma-schema' and forbiddenPatterns were declared enforced but live-inert."
     },
     "state-machine.json": {
       "authority": "kernel",
       "enforcementMode": "runtime",
       "failureMode": "fail-closed",
       "status": "enforced",
-      "consumers": [".opencode/plugins/lib/risk-engine.js", "scripts/state-manager.ps1", "scripts/evidence-check.mjs"],
-      "adversarialTests": ["tests/oage-gates.test.js"],
+      "consumers": [
+        ".opencode/plugins/lib/risk-engine.js",
+        "scripts/state-manager.ps1",
+        "scripts/evidence-check.mjs"
+      ],
+      "adversarialTests": [
+        "tests/oage-gates.test.js"
+      ],
       "ci": [],
       "note": "Read fresh on every call, not cached — /agent_loop rewrites currentState mid-session."
     },
@@ -165,20 +225,29 @@
       "authority": "kernel",
       "enforcementMode": "runtime",
       "failureMode": "fail-closed",
-      "status": "unenforced",
-      "consumers": [],
-      "adversarialTests": [],
+      "status": "enforced",
+      "consumers": [
+        ".opencode/plugins/lib/audit-rotation.js",
+        ".opencode/plugins/lib/oage-lib.js"
+      ],
+      "adversarialTests": [
+        "tests/audit-rotation.test.js"
+      ],
       "ci": [],
-      "note": "Nothing reads this config. The plugins write .opencode/audit/audit.jsonl through oage-lib with the path hardcoded, so `output` (which says audit.log) is ignored and `retention` (maxAge/maxSize/compress) never runs — the log grows without bound. First declared as enforced with oage-audit.js as consumer; the doctor rejected it, because the apparent match was the substring `audit.json` inside `audit.jsonl`. P1.2 gives it a real consumer."
+      "note": "P1.2 Phase 2: Retention enforcement via rotation engine. maxAge/maxSize now implemented. current.jsonl bounded at 10MB/10K events. Archive preserves historical events for forensic purposes."
     },
-
     "definition-of-done.json": {
       "authority": "phase",
       "enforcementMode": "phase",
       "failureMode": "fail-closed",
       "status": "enforced",
-      "consumers": ["scripts/evidence-check.mjs", "scripts/state-manager.ps1"],
-      "adversarialTests": ["tests/oage-gates.test.js"],
+      "consumers": [
+        "scripts/evidence-check.mjs",
+        "scripts/state-manager.ps1"
+      ],
+      "adversarialTests": [
+        "tests/oage-gates.test.js"
+      ],
       "ci": [],
       "note": "Not in CI yet: evidence-check needs --phase, so it cannot run on every push. P1.4 derives the phase from state-machine.json."
     },
@@ -187,8 +256,13 @@
       "enforcementMode": "phase",
       "failureMode": "fail-closed",
       "status": "enforced",
-      "consumers": ["scripts/reviewer-check.mjs", "scripts/state-manager.ps1"],
-      "adversarialTests": ["tests/oage-gates.test.js"],
+      "consumers": [
+        "scripts/reviewer-check.mjs",
+        "scripts/state-manager.ps1"
+      ],
+      "adversarialTests": [
+        "tests/oage-gates.test.js"
+      ],
       "ci": [],
       "note": "Separation of duties. Cannot be a kernel policy: tool.execute.before carries no agent identity, so 'a different agent than the implementer' is only decidable where attribution is explicit."
     },
@@ -197,8 +271,12 @@
       "enforcementMode": "phase",
       "failureMode": "fail-closed",
       "status": "enforced",
-      "consumers": ["scripts/handoff.mjs"],
-      "adversarialTests": ["tests/oage-gates.test.js"],
+      "consumers": [
+        "scripts/handoff.mjs"
+      ],
+      "adversarialTests": [
+        "tests/oage-gates.test.js"
+      ],
       "ci": []
     },
     "permissions-matrix.json": {
@@ -206,8 +284,12 @@
       "enforcementMode": "phase",
       "failureMode": "fail-closed",
       "status": "enforced",
-      "consumers": ["scripts/guards/permission-guard.ps1"],
-      "adversarialTests": [],
+      "consumers": [
+        "scripts/guards/permission-guard.ps1"
+      ],
+      "adversarialTests": [
+        "tests/permissions-matrix-adversarial.test.js"
+      ],
       "ci": [],
       "note": "Phase-scoped allowedAgents. Deliberately NOT a kernel policy — the runtime hook has no agent identity, so pushing it into tool.execute.before would create a false sense of enforcement. Its only consumer today is a PowerShell guard, which does not run on non-Windows or in CI: P1.3 gives it real authority at handoff/CI."
     },
@@ -216,31 +298,49 @@
       "enforcementMode": "phase",
       "failureMode": "escalate",
       "status": "enforced",
-      "consumers": ["scripts/guards/skill-guard.ps1", "scripts/run-pipeline.ps1"],
-      "adversarialTests": ["tests/oage-gates.test.js"],
+      "consumers": [
+        "scripts/guards/skill-guard.ps1",
+        "scripts/run-pipeline.ps1"
+      ],
+      "adversarialTests": [
+        "tests/oage-gates.test.js"
+      ],
       "ci": [],
       "note": "The RUNTIME skill gate does not read this file — it resolves from policy-resolver.json plus skill-engine's technology map. This file governs the phase-level pipeline only."
     },
-
     "ci-gate.json": {
       "authority": "ci",
       "enforcementMode": "ci",
       "failureMode": "fail-closed",
-      "status": "unenforced",
-      "consumers": [],
-      "adversarialTests": ["tests/ci-fail-closed.test.js"],
-      "ci": [],
-      "note": "The CI workflow is fail-closed and has a final gate, but it is hand-written YAML — nothing reads ci-gate.json to derive or verify it. Either the workflow starts consuming it, or it becomes declarative."
+      "status": "enforced",
+      "consumers": [
+        "scripts/ci-gate-check.mjs"
+      ],
+      "adversarialTests": [
+        "tests/ci-fail-closed.test.js",
+        "tests/ci-gate-check.test.js"
+      ],
+      "ci": [
+        ".github/workflows/oage-ci.yml",
+        "templates/base/ci/oage-ci.yml"
+      ],
+      "note": "scripts/ci-gate-check.mjs reads ci-gate.json and fails the pipeline when a required check has no step in the workflow, unless skipIfMissing legitimately skips it."
     },
     "security-gates.json": {
       "authority": "ci",
       "enforcementMode": "ci",
       "failureMode": "fail-closed",
-      "status": "unenforced",
-      "consumers": [],
-      "adversarialTests": [],
-      "ci": [],
-      "note": "Validated as JSON and shipped to projects, but no consumer applies it."
+      "status": "enforced",
+      "consumers": [
+        "scripts/lint.mjs"
+      ],
+      "adversarialTests": [
+        "tests/security-gates-consumer.test.js"
+      ],
+      "ci": [
+        ".github/workflows/oage-ci.yml"
+      ],
+      "note": "scripts/lint.mjs reads security-gates.json as the source of the security scan rules and CI runs it via the anti-patterns step. Deploy-time security signoff remains a tracked gap."
     },
     "production-gate.json": {
       "authority": "ci",
@@ -250,7 +350,7 @@
       "consumers": [],
       "adversarialTests": [],
       "ci": [],
-      "note": "Validated as JSON and shipped to projects, but no consumer applies it."
+      "note": "Deploy-time gate, not a per-push gate: requireHumanApproval and approvalRequired.roles=human need a human, and the thresholds (coverage >= 80, performance >= 90) need evidence that does not exist at push time. Kept as a tracked gap until a release/deploy pipeline consumes it."
     },
     "context7-gate.json": {
       "authority": "kernel",
@@ -272,15 +372,18 @@
       "ci": [],
       "note": "Automatic skill resolution is hardcoded in .opencode/plugins/lib/skill-engine.js instead of being driven by this file."
     },
-
     "mcp-registry.json": {
       "authority": "declarative",
       "enforcementMode": "declarative",
       "failureMode": "none",
       "status": "enforced",
-      "consumers": ["scripts/validate.mjs"],
+      "consumers": [
+        "scripts/validate.mjs"
+      ],
       "adversarialTests": [],
-      "ci": [".github/workflows/oage-ci.yml"],
+      "ci": [
+        ".github/workflows/oage-ci.yml"
+      ],
       "note": "A registry of permitted MCP servers. Shape is validated; nothing gates MCP usage on it."
     },
     "memory.json": {
@@ -288,7 +391,10 @@
       "enforcementMode": "declarative",
       "failureMode": "none",
       "status": "enforced",
-      "consumers": ["core/generator.mjs", "scripts/validate.mjs"],
+      "consumers": [
+        "core/generator.mjs",
+        "scripts/validate.mjs"
+      ],
       "adversarialTests": [],
       "ci": [],
       "note": "Shape only: generated into projects and validated. The memory FILES under .opencode/memory/ are what the scripts actually read."
@@ -298,7 +404,10 @@
       "enforcementMode": "declarative",
       "failureMode": "none",
       "status": "enforced",
-      "consumers": ["core/installer.mjs", "scripts/generate-blueprints.mjs"],
+      "consumers": [
+        "core/installer.mjs",
+        "scripts/generate-blueprints.mjs"
+      ],
       "adversarialTests": [],
       "ci": [],
       "optional": true,
@@ -309,11 +418,31 @@
       "enforcementMode": "declarative",
       "failureMode": "none",
       "status": "enforced",
-      "consumers": ["core/generator.mjs", "scripts/validate.mjs"],
+      "consumers": [
+        "core/generator.mjs",
+        "scripts/validate.mjs"
+      ],
       "adversarialTests": [],
       "ci": [],
       "optional": true,
       "note": "The OpenCode project config, not a governance policy. Lives at the project root in installed projects."
+    },
+    "governance-state.json": {
+      "authority": "kernel",
+      "enforcementMode": "runtime",
+      "failureMode": "fail-closed",
+      "status": "enforced",
+      "consumers": [
+        ".opencode/plugins/oage-audit.js",
+        ".opencode/plugins/oage-enforce.js"
+      ],
+      "adversarialTests": [
+        "tests/governance-state.test.js"
+      ],
+      "ci": [
+        ".github/workflows/oage-ci.yml"
+      ],
+      "note": "SOURCE OF DECISION for Context7/Skill/Version gates. Validated schema (version, schemaVersion, projectId, createdAt, updatedAt, entries[]). Entries have TTL (context7: 30m, skill: 60m, version: 120m). Dual-write: audit hook writes state, enforce hook reads state. INDEPENDENT from audit.jsonl (SOURCE OF EXPLANATION). Cross-session isolation: session A evidence does not satisfy session B."
     }
   }
 }

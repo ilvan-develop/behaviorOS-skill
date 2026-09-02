@@ -1,0 +1,54 @@
+{
+  "version": "1.0.0",
+  "schemaVersion": 1,
+  "description": "Estado operacional para decisões de enforcement (OAGE P1.2). SOURCE OF DECISION para gates que dependem de evidência recente. Independente do audit trail — ambos recebem o mesmo evento, mas governance state decide e audit trail explica. A policy declara o schema; o estado runtime vive em .opencode/audit/governance-state.json.",
+  "enabled": true,
+
+  "ttlMinutes": {
+    "context7": 30,
+    "truth": 30,
+    "skill": 240,
+    "knowledge": 240
+  },
+  "ttlMinutesNote": "Tempo de vida de cada entrada no state. Após expiração, a entrada é tratada como ausente — não como fallback. O valor é lido de policy-resolver.json quando disponível; estes são os defaults.",
+
+  "maxEntries": 500,
+  "maxEntriesNote": "Limite de entradas no state. Quando excedido, as entradas mais antigas são removidas (LRU eviction). Previne crescimento indefinido.",
+
+  "rotationThreshold": {
+    "maxSizeKB": 100,
+    "maxEvents": 1000,
+    "maxAgeDays": 365
+  },
+  "rotationThresholdNote": "Thresholds para rotação do audit trail. Estes valores governam o audit/current.jsonl, não o governance-state.json.",
+
+  "integrityCheck": {
+    "enabled": true,
+    "algorithm": "sha256",
+    "onCorruption": "fail-closed"
+  },
+  "integrityCheckNote": "Verificação de integridade. Se o state estiver corrompido, todos os gates que dependem dele → DENY.",
+
+  "invariants": [
+    "I-01: TTL obrigatório — toda entrada tem expiresAt = createdAt + ttlMinutes[gate]",
+    "I-02: Sessão associada — toda entrada tem sessionID válido",
+    "I-03: Sem reutilização de expirado — state expirado NUNCA resulta em ALLOW",
+    "I-04: Escrita atómica — write-to-temp + rename",
+    "I-05: Schema versionado — schema incompatível → descartar, não migrar",
+    "I-06: Fail-closed — estado inválido/corrompido/ausente → DENY",
+    "I-07: Audit de atualização — toda escrita ao state gera evento no audit",
+    "I-08: Nunca substituir audit — corrupção do audit NÃO substitui o state",
+    "I-09: Max entries — LRU eviction quando maxEntries excedido",
+    "I-10: Append-only — entradas são appendadas, nunca editadas in-place"
+  ],
+
+  "corruptionBehavior": {
+    "stateInvalid": "Recriar vazio; todos os gates que dependem → DENY",
+    "stateWrongProject": "Descartar; projectId mismatch = estado novo",
+    "stateWrongSchema": "Descartar; schemaVersion mismatch = estado novo",
+    "auditInvalid": "Não substituir state; manter último state válido",
+    "auditTruncated": "Ler até onde válido; ignorar linhas corrompidas",
+    "mismatch": "DEGRADED — state mantido como autoridade",
+    "bothMissing": "Criar ambos; enforcement funciona com base em policy"
+  }
+}

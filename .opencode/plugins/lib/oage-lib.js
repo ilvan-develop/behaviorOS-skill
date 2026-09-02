@@ -9,10 +9,14 @@
  * stable `agent` or `sessionID` field on `input`, nor the exact content field name for
  * write/edit. This file is defensive about both: it tries several plausible field names
  * and degrades to a global (non-agent-scoped) check rather than throwing on missing data.
+ *
+ * P1.2 Phase 2: appendAudit() now checks rotation thresholds before each write.
+ * Rotation is transparent to callers — the signature is unchanged.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
 import { join, dirname, resolve as resolvePath, relative as relativePath } from 'node:path';
+import { shouldRotate, rotate, loadConfig, readAuditWindow } from './audit-rotation.js';
 
 export function governanceDir(root) {
   return join(root, '.opencode', 'governance');
@@ -143,16 +147,54 @@ export function matchesCommand(command, patterns) {
   });
 }
 
+/**
+ * Append an audit event to audit.jsonl with automatic rotation.
+ *
+ * P1.2 Phase 2: Before each append, checks if rotation is needed.
+ * Rotation is transparent — the signature is unchanged from the original.
+ *
+ * Reads retention config from governance/audit.json (maxFileSize, maxEvents).
+ * Rotates to archive/YYYY/MM/audit-YYYY-MM-DD.jsonl when thresholds exceeded.
+ *
+ * @param {string} root - Project root directory
+ * @param {object} entry - Audit event to append
+ * @returns {object} The appended record with timestamp
+ */
 export function appendAudit(root, entry) {
   const dir = auditDir(root);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+
+  // P1.2 Phase 2: Check rotation before append
+  const config = loadConfig(root);
+  const auditPath = join(dir, 'audit.jsonl');
+
+  if (existsSync(auditPath)) {
+    const check = shouldRotate(dir, config);
+    if (check.rotate) {
+      rotate(dir, config);
+      // Record rotation event (I-18: rotation is audited)
+      const rotationRecord = {
+        timestamp: new Date().toISOString(),
+        event: 'audit_rotated',
+        reason: check.reason,
+        eventsArchived: check.events,
+        sizeArchived: check.size,
+      };
+      appendFileSync(auditPath, JSON.stringify(rotationRecord) + '\n');
+    }
+  }
+
   const record = { timestamp: new Date().toISOString(), ...entry };
-  appendFileSync(join(dir, 'audit.jsonl'), JSON.stringify(record) + '\n');
+  appendFileSync(auditPath, JSON.stringify(record) + '\n');
   return record;
 }
 
 /**
  * Reads recent audit events, optionally scoped to a single session.
+ *
+ * P1.2 Phase 3: Delegates to readAuditWindow for bounded, efficient reads.
+ * The windowed reader only reads current.jsonl (bounded operational window)
+ * and never touches archive.
  *
  * `sessionID` scoping matters because evidence (context7 query, skill load, grounding
  * evidence) should only satisfy a gate if it was produced by the current work stream.
@@ -162,23 +204,7 @@ export function appendAudit(root, entry) {
  * used by gates that are deliberately repo-wide (e.g. loop detection).
  */
 export function readAuditEvents(root, { event, windowMinutes = 30, sessionID } = {}) {
-  const file = join(auditDir(root), 'audit.jsonl');
-  if (!existsSync(file)) return [];
-  const cutoff = Date.now() - windowMinutes * 60 * 1000;
-  const lines = readFileSync(file, 'utf8').split('\n').filter(Boolean);
-  const out = [];
-  for (const line of lines) {
-    try {
-      const rec = JSON.parse(line);
-      if (event && rec.event !== event) continue;
-      if (sessionID && rec.sessionID && rec.sessionID !== sessionID) continue;
-      if (new Date(rec.timestamp).getTime() < cutoff) continue;
-      out.push(rec);
-    } catch {
-      // skip malformed line
-    }
-  }
-  return out;
+  return readAuditWindow(auditDir(root), { event, windowMinutes, sessionID });
 }
 
 export function readLoopState(root) {
@@ -260,6 +286,35 @@ export function extractBashMutatedPaths(command) {
       if (!/[\\/.]/.test(token)) continue;
       if (/^[.]{1,2}$/.test(token)) continue;
       out.push(token);
+    }
+  }
+  return [...new Set(out)];
+}
+
+export function extractInterpreterWrites(command) {
+  if (!command) return [];
+
+  const cmd = String(command);
+
+  const INTERPRETER = /(?:^|\s)(?:node|python3?|perl|ruby|bun|deno|php|powershell|pwsh)(?:\.exe)?(?=\s)/;
+  const PROTECTED = /\.opencode[/\\](?:governance|audit|plugins)/;
+  const INLINE_WRITE =
+    /writeFile(?:Sync)?|appendFile(?:Sync)?|createWriteStream|truncate(?:Sync)?\s*\(|copyFile(?:Sync)?\s*\(|rename(?:Sync)?\s*\(|rm(?:Sync)?\s*\(|unlink(?:Sync)?\s*\(|rmdir(?:Sync)?\s*\(|mkdir(?:Sync)?\s*\(|\bFile\.write\b|\bf\.write\b|open\s*\([^)]*['"][wa>]|Put-Content|Set-Content|Add-Content|Out-File|Copy-Item|Move-Item|Remove-Item|New-Item/;
+  const REDIRECT = />>?\s*([^\s"'&|;]+)/g;
+  const PATH_RE = /\.opencode[/\\](?:governance|audit|plugins)(?:[/\\][A-Za-z0-9_.\\-]*)?/g;
+
+  if (!INTERPRETER.test(cmd)) return [];
+  if (!PROTECTED.test(cmd)) return [];
+
+  const out = [];
+  if (INLINE_WRITE.test(cmd)) {
+    let m;
+    while ((m = PATH_RE.exec(cmd))) out.push(m[0].replace(/\\/g, '/'));
+  } else {
+    let r;
+    while ((r = REDIRECT.exec(cmd))) {
+      const target = r[1].replace(/^['"]|['"]$/g, '');
+      if (PROTECTED.test(target)) out.push(target.replace(/\\/g, '/'));
     }
   }
   return [...new Set(out)];

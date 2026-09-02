@@ -48,6 +48,11 @@ jobs:
       - name: Critical anti-pattern scan
         run: node scripts/lint.mjs --anti-patterns-only
 
+      # The declared gate (ci-gate.json) must match the pipeline: ci-gate-check.mjs fails the
+      # job when a required check has no step, so the declaration cannot drift from reality.
+      - name: CI gate declaration check
+        run: node scripts/ci-gate-check.mjs
+
   quality:
     name: Quality gates
     runs-on: ubuntu-latest

@@ -28,7 +28,7 @@ import { fileURLToPath } from 'url';
 import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync, cpSync } from 'fs';
 import { tmpdir } from 'os';
 import { OageEnforce } from '../.opencode/plugins/oage-enforce.js';
-import { canonicalTarget, matchesAny, extractBashMutatedPaths } from '../.opencode/plugins/lib/oage-lib.js';
+import { canonicalTarget, matchesAny, extractBashMutatedPaths, extractInterpreterWrites } from '../.opencode/plugins/lib/oage-lib.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -191,6 +191,152 @@ describe('KERNEL_SELF_PROTECTION — shell bypasses', () => {
       await attempt('bash', { command: 'ls -la .opencode && rm .opencode/governance/risk-engine.json' }),
       'compound command',
     );
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Interpreter bypasses (P1.x) — `node -e`/`python -c`/`perl -e`/`ruby -e`/`pwsh -Command`
+// can write files the shell-verb extractors never see, because the write happens inside
+// interpreter code, not via a shell redirection or a mutating shell verb. The extractors
+// must treat those as protected-resource writes, while leaving interpreter READS alone.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('KERNEL_SELF_PROTECTION — interpreter bypasses', () => {
+  it('denies a node -e writeFileSync into the governance contract', async () => {
+    const cmd = `node -e "require('fs').writeFileSync('.opencode/governance/governance-contract.json','x')"`;
+    assertDenied(await attempt('bash', { command: cmd }), 'node -e writeFileSync');
+  });
+
+  it('denies a node -e writeFileSync addressed by absolute path', async () => {
+    const abs = join(FIXTURE, '.opencode', 'governance', 'governance-contract.json');
+    const cmd = `node -e "require('fs').writeFileSync('${abs.split(sep).join('/')}','x')"`;
+    assertDenied(await attempt('bash', { command: cmd }), 'node -e abs');
+  });
+
+  it('denies a node --eval writeFileSync into the audit trail', async () => {
+    const cmd = `node --eval "require('fs').writeFileSync('.opencode/audit/audit.jsonl','x')"`;
+    assertDenied(await attempt('bash', { command: cmd }), 'node --eval audit');
+  });
+
+  it('denies a python -c open(...,w) into governance', async () => {
+    const cmd = `python -c "open('.opencode/governance/permissions-matrix.json','w').write('x')"`;
+    assertDenied(await attempt('bash', { command: cmd }), 'python -c open w');
+  });
+
+  it('denies a python -c open(...,a) append into governance', async () => {
+    const cmd = `python -c "open('.opencode/governance/state-machine.json','a').write('x')"`;
+    assertDenied(await attempt('bash', { command: cmd }), 'python -c open a');
+  });
+
+  it('denies a ruby -e File.write into the enforcer itself', async () => {
+    const cmd = `ruby -e "File.write('.opencode/plugins/oage-enforce.js','x')"`;
+    assertDenied(await attempt('bash', { command: cmd }), 'ruby -e File.write');
+  });
+
+  it('denies a perl -e open(>file) into governance', async () => {
+    const cmd = `perl -e 'open(my \\$fh, ">", ".opencode/governance/audit.json"); print \\$fh "x";'`;
+    assertDenied(await attempt('bash', { command: cmd }), 'perl -e open >');
+  });
+
+  it('denies a pwsh -Command Set-Content into governance', async () => {
+    const cmd = `pwsh -Command "Set-Content -Path .opencode\\governance\\truth-gate.json -Value x"`;
+    assertDenied(await attempt('bash', { command: cmd }), 'pwsh Set-Content');
+  });
+
+  it('denies a node -e recursive rmSync of the whole governance directory', async () => {
+    const cmd = `node -e "require('fs').rmSync('.opencode/governance',{recursive:true})"`;
+    assertDenied(await attempt('bash', { command: cmd }), 'node rmSync dir');
+  });
+
+  it('denies an interpreter write hidden behind a benign clause', async () => {
+    const cmd = `ls -la && node -e "require('fs').writeFileSync('.opencode/governance/risk-engine.json','x')"`;
+    assertDenied(await attempt('bash', { command: cmd }), 'compound interpreter');
+  });
+});
+
+describe('KERNEL_SELF_PROTECTION — interpreter reads stay allowed', () => {
+  it('allows a node -e readFileSync of a governance file', async () => {
+    const cmd = `node -e "console.log(require('fs').readFileSync('.opencode/governance/risk-engine.json','utf8'))"`;
+    const error = await attempt('bash', { command: cmd });
+    assert.equal(error, null, `node read must stay allowed, got: ${error?.message}`);
+  });
+
+  it('allows python -c reading a governance file', async () => {
+    const cmd = `python -c "print(open('.opencode/governance/truth-gate.json').read())"`;
+    const error = await attempt('bash', { command: cmd });
+    assert.equal(error, null, `python read must stay allowed, got: ${error?.message}`);
+  });
+
+  it('allows an interpreter read with stdout redirected outside the project', async () => {
+    const cmd = `node -e "console.log(require('fs').readFileSync('.opencode/governance/truth-gate.json'))" > /tmp/oage-out.txt`;
+    const error = await attempt('bash', { command: cmd });
+    assert.equal(error, null, `read + external redirect must stay allowed, got: ${error?.message}`);
+  });
+
+  it('allows bash node script.mjs with no protected path on the command line (accepted, documented limitation)', async () => {
+    const error = await attempt('bash', { command: 'node script.mjs' });
+    assert.equal(error, null, `node script.mjs must pass, got: ${error?.message}`);
+  });
+
+  it('allows bash python script.py with no protected path on the command line', async () => {
+    const error = await attempt('bash', { command: 'python script.py' });
+    assert.equal(error, null, `python script.py must pass, got: ${error?.message}`);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The mechanism the interpreter invariant rests on
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('extractInterpreterWrites — the interpreter detection primitive', () => {
+  it('extracts a protected path from a node -e writeFileSync', () => {
+    assert.deepEqual(
+      extractInterpreterWrites(`node -e "require('fs').writeFileSync('.opencode/governance/governance-contract.json','x')"`),
+      ['.opencode/governance/governance-contract.json'],
+    );
+  });
+
+  it('extracts a protected path from a python -c open(...,w)', () => {
+    assert.deepEqual(
+      extractInterpreterWrites(`python -c "open('.opencode/governance/a.json','w').write('x')"`),
+      ['.opencode/governance/a.json'],
+    );
+  });
+
+  it('extracts a windows-spelled protected path from pwsh Set-Content', () => {
+    assert.deepEqual(
+      extractInterpreterWrites(`pwsh -Command "Set-Content -Path .opencode\\governance\\truth-gate.json -Value x"`),
+      ['.opencode/governance/truth-gate.json'],
+    );
+  });
+
+  it('extracts the protected directory itself for a recursive delete', () => {
+    assert.deepEqual(
+      extractInterpreterWrites(`node -e "require('fs').rmSync('.opencode/governance',{recursive:true})"`),
+      ['.opencode/governance'],
+    );
+  });
+
+  it('returns nothing for a node read', () => {
+    assert.deepEqual(
+      extractInterpreterWrites(`node -e "console.log(require('fs').readFileSync('.opencode/governance/a.json'))"`),
+      [],
+    );
+  });
+
+  it('returns nothing for a python read', () => {
+    assert.deepEqual(
+      extractInterpreterWrites(`python -c "print(open('.opencode/governance/a.json').read())"`),
+      [],
+    );
+  });
+
+  it('returns nothing for node script.mjs with no protected path on the command line', () => {
+    assert.deepEqual(extractInterpreterWrites('node script.mjs'), []);
+  });
+
+  it('returns nothing for a non-interpreter shell command that mentions a governance path', () => {
+    assert.deepEqual(extractInterpreterWrites('cat .opencode/governance/truth-gate.json | jq .'), []);
   });
 });
 

@@ -1,6 +1,6 @@
 {
   "version": "3.0.0",
-  "description": "Context7 enforcement por biblioteca. SUPERSDED by Behavior Resolution kernel (policy-resolver.json). Kept for backward compatibility with legacy scripts.",
+  "description": "Context7 enforcement por biblioteca. SUPERSEDED by the Behavior Resolution kernel (policy-resolver.json, policies['context7-gate'].rules). Kept for backward compatibility with legacy scripts. Declared unenforced as tracked debt (P1.5): this file is a disabled placeholder (enabled: false, action: 'off'); the runtime context7 requirement is read from policy-resolver.json by oage-enforce.js via lib/policy-resolver.js.",
   "enabled": false,
   "checkBeforeWrite": false,
   "auditEvent": "context7_queried",

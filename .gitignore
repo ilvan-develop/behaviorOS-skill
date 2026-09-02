@@ -53,7 +53,11 @@ pnpm-lock.yaml
 .opencode/audit/audit.jsonl
 .opencode/audit/loop-state.json
 .opencode/audit/skills-loaded.json
+.opencode/audit/governance-state.json
 .opencode/audit/*.log
 .opencode/evidence/
 .opencode/handoffs/
 .opencode/logs/
+
+# Duplicate local skill library (canonical copy lives in .opencode/skills)
+.agents/
